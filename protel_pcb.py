@@ -385,21 +385,22 @@ class Board:
             ymin = 1e12
     
             for t in self.tracks:
-                x1 = None
-    
-                x1 = self.to_mm(t['X1'])
-                y1 = self.to_mm(t['Y1'])
-                x2 = self.to_mm(t['X2'])
-                y2 = self.to_mm(t['Y2'])
-    
-                xmax = max(xmax, x1)
-                xmax = max(xmax, x2)
-                ymax = max(ymax, y1)
-                ymax = max(ymax, y2)
-                xmin = min(xmin, x1)
-                xmin = min(xmin, x2)
-                ymin = min(ymin, y1)
-                ymin = min(ymin, y2)
+                if t["RECORD"] == "Track":
+                    x1 = None
+
+                    x1 = self.to_mm(t['X1'])
+                    y1 = self.to_mm(t['Y1'])
+                    x2 = self.to_mm(t['X2'])
+                    y2 = self.to_mm(t['Y2'])
+
+                    xmax = max(xmax, x1)
+                    xmax = max(xmax, x2)
+                    ymax = max(ymax, y1)
+                    ymax = max(ymax, y2)
+                    xmin = min(xmin, x1)
+                    xmin = min(xmin, x2)
+                    ymin = min(ymin, y1)
+                    ymin = min(ymin, y2)
     
             self.offset = [-xmin, ymax]
 
@@ -876,10 +877,8 @@ class Board:
                         arc["WIDTH"] = struct.unpack('<i', arcdef[43:47])[0] / 1e4
                         arc["LAYER"] = pcb.layers.get_name(int(arcdef[2]))
     
-                        # TODO ignore some layers...
-                        if (arcdef[2] == 58) or (arcdef[2] == 39):
-                            pass
-                            #print(f"ARC: Ignore layer {arcdef[2]}")
+                        if netno != -1:
+                            pcb.tracks.append(arc)
                         else:
                             if compno != -1:
                                 index, fp = pcb.find_fp(compno)
@@ -1811,21 +1810,51 @@ class Board:
         # ---------- Tracks ----------
 
         # Segments
-        for track in self.tracks:
-            x1, y1 = self.to_point(track["X1"], track["Y1"])
-            x2, y2 = self.to_point(track["X2"], track["Y2"])
-            layer = self.layers.translate(track["LAYER"])[0]["layer"]
-            width = self.to_mm(track["WIDTH"])
-            netno = 1 + int(track["NET"])
-            if netno >= 0:
-                kpcb.write(
-                    f"  (segment"
-                    f" (start {x1:.3f} {y1:.3f})"
-                    f" (end {x2:.3f} {y2:.3f})"
-                    f" (width {width:.3f})"
-                    f" (layer {layer})"
-                    f" (net {netno}))\n"
-                    )
+        for prim in self.tracks:
+            if prim["RECORD"] == "Track":
+                track = prim
+                x1, y1 = self.to_point(track["X1"], track["Y1"])
+                x2, y2 = self.to_point(track["X2"], track["Y2"])
+                layer = self.layers.translate(track["LAYER"])[0]["layer"]
+                width = self.to_mm(track["WIDTH"])
+                netno = 1 + int(track["NET"])
+                if netno >= 1:
+                    kpcb.write(
+                        f"  (segment"
+                        f" (start {x1:.3f} {y1:.3f})"
+                        f" (end {x2:.3f} {y2:.3f})"
+                        f" (width {width:.3f})"
+                        f" (layer {layer})"
+                        f" (net {netno}))\n"
+                        )
+
+            if prim["RECORD"] == "Arc":
+                if not "POLYGON" in prim:
+                    layer = self.layers.translate(prim["LAYER"])[0]["layer"]
+
+                    cx, cy = self.to_point(prim["LOCATION.X"], prim["LOCATION.Y"])
+                    r = self.to_mm(prim["RADIUS"])
+                    width = self.to_mm(prim["WIDTH"])
+                    # TODO chaos...
+                    end_angle = 360.0 - float(prim["STARTANGLE"])
+                    start_angle = 360.0 - float(prim["ENDANGLE"])
+                    x1 = cx + r * math.cos(start_angle / 57.29578)
+                    y1 = cy + r * math.sin(start_angle / 57.29578)
+                    x2 = cx + r * math.cos((start_angle + end_angle) / (2*57.29578))
+                    y2 = cy + r * math.sin((start_angle + end_angle) / (2*57.29578))
+                    x3 = cx + r * math.cos(end_angle / 57.29578)
+                    y3 = cy + r * math.sin(end_angle / 57.29578)
+                    # "start" is the center, "end" is the starting point on the arc...
+                    netno = 1 + int(prim["NET"])
+                    if netno >= 1:
+                        kpcb.write(
+                            f"  (arc"
+                            f" (start {x1:.3f} {y1:.3f})"
+                            f" (mid {x2:.3f} {y2:.3f})"
+                            f" (end {x3:.3f} {y3:.3f})"
+                            f" (net {netno})"
+                            f" (layer {layer}) (width {width:3f}))\n"
+                            )
         kpcb.write("\n")
     
         # Vias
