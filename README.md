@@ -64,6 +64,7 @@ There are quite a few...   The list below is definitely incomplete!
   * Schematics very likely require extra `PWR_FLAG` objects. Protel does not distinguish between power_in and power_out pins, and all such pins are converted to 'Power Input' in KiCad.
   * Filled rectangles in the schematic are filled in 'background' mode if border and fill color are different. They are filled in (opaque) 'fill' mode if border and fill color are identical. This is a simple heuristic that worked for almost all symbols in the old schematics/libraries I have.
   * In Protel you could define a pad stack for thru-hole pads with different pad geometries for outer and inner layers. KiCad does not support this, and the converter will give you a warning. It still creates an output though, just uses the TopLayer geometry of the Protel pad.
+  * Images on schematic sheets (JPG/PNG) are supported. Protel stores a link to the image file, but not the image data itself (this is different from KiCad). Therefore, you must also provide the image file in addition to the schematic file. The converter searches for the image file in the same directory where the schematic is located. Ideally, store image files in the root directory of the `.ddb` design database.
 
 NOTE: If the tool crashes during conversion, or in case the conversion result is not what you expect, please let me know. In such a case send me the files you are trying to convert along with a description of the error.
 
