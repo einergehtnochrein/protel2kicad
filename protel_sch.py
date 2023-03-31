@@ -435,11 +435,11 @@ def symbol_gnd (libname, netname):
         (polyline
           (pts
             (xy 0 0)
-            (xy 0 -1.27)
+            (xy 1.27 0)
+            (xy 1.27 1.27)
+            (xy 2.54 0)
             (xy 1.27 -1.27)
-            (xy 0 -2.54)
-            (xy -1.27 -1.27)
-            (xy 0 -1.27)
+            (xy 1.27 0)
           )
           (stroke (width 0) (type default) (color 0 0 0 0))
           (fill (type none))
@@ -469,12 +469,12 @@ def symbol_arrow (libname, netname):
       )
       (symbol \"{netname}_0_1\"
         (polyline
-          (pts (xy -0.762 1.27) (xy 0 2.54) (xy 0.762 1.27))
+          (pts (xy 1.27 0.762) (xy 2.54 0) (xy 1.27 -0.762))
           (stroke (width 0) (type default) (color 0 0 0 0))
           (fill (type none))
         )
         (polyline
-          (pts (xy 0 0) (xy 0 2.54))
+          (pts (xy 0 0) (xy 2.54 0))
           (stroke (width 0) (type default) (color 0 0 0 0))
           (fill (type none))
         )
@@ -611,11 +611,11 @@ class Schematic:
     def define_power_symbol (self, protel_symbol, libname, netname, ksch):
         if not netname in self.power_sym_defs.keys():
             if protel_symbol == 2:
-                self.power_sym_defs[netname] = {"rotation":90, "libname":libname}
+                self.power_sym_defs[netname] = {"libname":libname}
                 ksch.write(symbol_gnd(libname, netname))
                 self.power_symbol_text += symbol_gnd(libname, netname)
             else:
-                self.power_sym_defs[netname] = {"rotation":270, "libname":libname}
+                self.power_sym_defs[netname] = {"libname":libname}
                 ksch.write(symbol_arrow(libname, netname))
                 self.power_symbol_text += symbol_arrow(libname, netname)
 
@@ -1184,7 +1184,6 @@ class Schematic:
                 ksch.write( "    )\n")
                 ksch.write( "  )\n")
 
-            # 
             if ci["type"] == "powerobject":
                 orientation = ci["rotation"]
                 x, y = (ci["x"], ci["y"])
@@ -1206,7 +1205,6 @@ class Schematic:
                     raise RuntimeError("Can\'t find power symbol")
 
                 libid = self.power_sym_defs[name]["libname"]
-                orientation = (orientation + self.power_sym_defs[name]["rotation"]) % 360
 
                 x, y = ct(x, y)
                 value_x, value_y = ct(value_x, value_y)
@@ -1216,10 +1214,10 @@ class Schematic:
                     ksch.write(f"  (symbol (lib_id \"{libid}:{name}\") (at {x:.3f} {y:.3f} {orientation}) (unit 1)\n")
                     ksch.write( "    (in_bom yes) (on_board yes)\n")
                     ksch.write(f"    (uuid {uu})\n")
-                    ksch.write(f"    (property \"Reference\" \"#PWR?\" (id 0) (at {x:.3f} {y:.3f} {orientation})\n")
+                    ksch.write(f"    (property \"Reference\" \"#PWR?\" (id 0) (at {x:.3f} {y:.3f} {orientation % 180})\n")
                     ksch.write( "      (effects (font (size 1.0 1.0)) hide)\n")
                     ksch.write( "    )\n")
-                    ksch.write(f"    (property \"Value\" \"{name}\" (id 1) (at {value_x:.3f} {value_y:.3f} {orientation})\n")
+                    ksch.write(f"    (property \"Value\" \"{name}\" (id 1) (at {value_x:.3f} {value_y:.3f} {orientation % 180})\n")
                     ksch.write( "      (effects (font (size 1.0 1.0)))\n")
                     ksch.write( "    )\n")
                     ksch.write( "  )\n")
