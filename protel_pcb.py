@@ -1805,7 +1805,7 @@ class Board:
         kpcb.write("\n")
 
         # ---------- Images ----------
-        # There are no images incoded in Protel PCB files
+        # There are no images encoded in Protel PCB files
 
         # ---------- Tracks ----------
 
@@ -1872,8 +1872,6 @@ class Board:
                     f" (net {netid}))\n"
                     )
         kpcb.write("\n")
-
-        # Arcs
 
         # ---------- Zones ----------
         for id, prim in self.polygons.items():
