@@ -97,12 +97,14 @@ class Primitive:
             '''
             0...1:      X
             2...3:      Y
-            4:          ?
+            4:          Mode (0=Normal, 1=DeMorgan, 2=IEEE)
             5:          Mirrored, Y axis (0/1)
             6:          Rotation (0=0°, 1=90°, 2=180°, 3=270°)
-            7:          ?
+            7:          Selection (0/1)
             8:          Unit number
-            9...13:     ?
+            9...11:     ?
+            12:         Show hidden fields (0/1)
+            13:         Show hidden pins (0/1)
             14...x      Library reference
             x+1...      Footprint name
             ...         List of child primitives, ends with type=255
@@ -116,7 +118,7 @@ class Primitive:
             gelem["unit"] = compdef[8]
             gelem["libref"] = ps()
             gelem["footprint"] = ps()
-            #print("Component", " ".join(f"{x:02X}" for x in compdef))
+            #print("Component", " ".join(f"{x:02X}" for x in compdef), gelem["libref"])
             children = []
             while True:
                 child = self.read_bin(infile)
@@ -139,8 +141,8 @@ class Primitive:
             10...11:    Y
             12:         Rotation (0=0°, 1=90°, 2=180°, 3=270°)
             13...16:    ?
-            ...         Name (string8)
-            ...         Number (string8)
+            17...       Name (string8)
+            ?...        Number (string8)
             '''
             gelem = {"type":"pin"}
             pindef = infile.read(17)
@@ -333,18 +335,33 @@ class Primitive:
             gelem["drawsolid"] = piedef[27]
 
         elif prim_type == 10:   # Rounded Rectangle
+            '''
+            0...1:      X1
+            2...3:      Y1
+            4...5:      X2
+            6...7:      Y2
+            8...9:      X-Radius
+            10...11:    Y-Radius
+            12:         Border width (0=smallest, 1=small, 2=medium, 3=large)
+            13...16:    Border Color (RGBA)
+            17...20:    Fill Color (RGBA)
+            21:         Selection (0/1)
+            22:         Draw solid (0/1)
+            '''
+            rrectdef = infile.read(23)
             gelem = {"type":"rounded_rectangle"}
-            gelem["x1"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["y1"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["x2"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["y2"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["rx"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["ry"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["borderwidth"] = self.get_width(infile.read(1))
-            gelem["border_color"] = infile.read(4)
-            gelem["fill_color"] = infile.read(4)
-            gelem["selection"] = infile.read(1)[0]
-            gelem["drawsolid"] = infile.read(1)[0]
+            gelem["x1"] = struct.unpack('<h', rrectdef[0:2])[0] * 0.254
+            gelem["y1"] = struct.unpack('<h', rrectdef[2:4])[0] * 0.254
+            gelem["x2"] = struct.unpack('<h', rrectdef[4:6])[0] * 0.254
+            gelem["y2"] = struct.unpack('<h', rrectdef[6:8])[0] * 0.254
+            gelem["rx"] = struct.unpack('<h', rrectdef[8:10])[0] * 0.254
+            gelem["ry"] = struct.unpack('<h', rrectdef[10:12])[0] * 0.254
+            gelem["borderwidth"] = self.get_width(rrectdef[12])
+            gelem["border_color"] = rrectdef[13:17]
+            gelem["fill_color"] = rrectdef[17:21]
+            gelem["selection"] = rrectdef[21]
+            gelem["drawsolid"] = rrectdef[22]
+            #print("RRect", " ".join(f"{x:02X}" for x in rrectdef))
 
         elif prim_type == 11:   # EllipticalArc
             '''
@@ -440,12 +457,24 @@ class Primitive:
             gelem["drawsolid"] = rdef[18]
 
         elif prim_type == 15:   # Sheet Symbol
+            '''
+            0...1:      X
+            2...3:      Y
+            4...5:      X Size
+            6...7:      Y Size
+            8:          Border width (0=smallest, 1=small, 2=medium, 3=large)
+            9...12:     Border Color (RGBA)
+            13...16:    Fill Color (RGBA)
+            17:         Selection (0/1)
+            18:         Draw Solid (0/1)
+            '''
             gelem = {"type":"sheet_symbol"}
-            gelem["x"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["y"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["xsize"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["ysize"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            infile.read(11)
+            shdef = infile.read(19)
+            gelem["x"] = struct.unpack('<h', shdef[0:2])[0] * 0.254
+            gelem["y"] = struct.unpack('<h', shdef[2:4])[0] * 0.254
+            gelem["xsize"] = struct.unpack('<h', shdef[4:6])[0] * 0.254
+            gelem["ysize"] = struct.unpack('<h', shdef[6:8])[0] * 0.254
+            #print("Sheet Symbol", " ".join(f"{x:02X}" for x in shdef))
             children = []
             while True:
                 child = self.read_bin(infile)
@@ -466,15 +495,26 @@ class Primitive:
             infile.read(5)
             gelem["name"] = ps()
 
-        elif prim_type == 17:   # PowerObject
+        elif prim_type == 17:   # PowerPort
+            '''
+            0:          Style (0=Circle, 1=Arrow, 2=Bar, 3=Wave,
+                               4=PowerGround, 5=SignalGround, 6=Earth)
+            1...2:      X
+            3...4:      Y
+            5:          Rotation (0=0°, 1=90°, 2=180°, 3=270°)
+            6...9:      Color (RGBA)
+            10:         Selection (0/1)
+            9...x:      Name (string8)
+            '''
+            pwrdef = infile.read(11)
             gelem = {"type":"powerobject"}
-            gelem["symbol"] = infile.read(1)[0]
-            gelem["x"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["y"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["rotation"] = self.get_rotation(infile.read(1)[0])
-            infile.read(3)  # Color RGB
-            infile.read(2)
+            gelem["symbol"] = pwrdef[0]
+            gelem["x"] = struct.unpack('<h', pwrdef[1:3])[0] * 0.254
+            gelem["y"] = struct.unpack('<h', pwrdef[3:5])[0] * 0.254
+            gelem["rotation"] = self.get_rotation(pwrdef[5])
+            gelem["color"] = pwrdef[6:10]
             gelem["name"] = ps()
+            #print("Power Port", " ".join(f"{x:02X}" for x in pwrdef), gelem["name"])
 
         elif prim_type == 18:   # Port
             gelem = {"type":"port"}
@@ -598,9 +638,20 @@ class Primitive:
             gelem["points"] = points
 
         elif prim_type == 27:   # Wire
+            '''
+            0:          Line width (0=smallest, 1=small, 2=medium, 3=large)
+            1...4:      Color (RGBA)
+            5:          Selection (0/1)
+            6...7:      N (number of points that follow)
+            N times:
+            0...1:      Xi
+            2...3:      Yi
+            '''
+            wdef = infile.read(8)
             gelem = {"type":"wire"}
-            infile.read(6)
-            npoints = struct.unpack('<h', infile.read(2))[0]
+            gelem["width"] = wdef[0]
+            gelem["color"] = wdef[1:5]
+            npoints = struct.unpack('<h', wdef[6:8])[0]
             points = []
             for n in range(npoints):
                 x = struct.unpack('<h', infile.read(2))[0] * 0.254
@@ -722,10 +773,10 @@ class Primitive:
             0...12:     ?
             13...x:     Text (string8)
             '''
+            tfdef = infile.read(13)
             gelem = {"type":"text_field"}
-            infile.read(13)
             gelem["text"] = ps()
-            #print(f"  Text field before 0x{infile.tell():X}", " ".join(f"{x:02X}" for x in tboxdef), gelem["text"])
+            #print("Text field", " ".join(f"{x:02X}" for x in tfdef), gelem["text"])
 
         elif prim_type == 37:   # Bus Entry
             gelem = {"type":"bus_entry"}
