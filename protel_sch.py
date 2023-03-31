@@ -1,9 +1,14 @@
 #!/usr/bin/python3
 
+import base64
+from io import BytesIO
 import math
+import ntpath
 import os
+from PIL import Image
 from protel_primitive import Primitive, ProtelString, KicadString
 import struct
+import textwrap
 import uuid
 
 
@@ -843,6 +848,53 @@ class Schematic:
         ksch.write( "\n")
     
         # Image Section
+        for ci in self.component_instances:
+            if ci["type"] == "image":
+                x1, y1 = ct(ci["x1"], ci["y1"])
+                x2, y2 = ct(ci["x2"], ci["y2"])
+
+                img_path = ci.get("path", "")
+
+                # Protel does not store the image, but rather just the path
+                # to the image on the system where the Protel file was created.
+                # See if we can find the image in the directory of the
+                # Protel file.
+                img_filename = os.path.join(img_path, ntpath.basename(ci["name"]))
+
+#TODO: Determine path relative to schematic
+                if os.path.isfile(img_filename):
+                    # Force to PNG format with PIL library
+                    im = Image.open(img_filename)
+                    png = BytesIO()
+                    im.save(png, "PNG")
+                    png.seek(0)
+
+                    # Compute scale factor from image size and bounding box
+                    # TODO just a guess...
+                    w, h = im.size
+                    scale = 12 * (x2 - x1) / w
+
+                    # KiCad image position is the center of the scaled image
+                    x, y = (x1 + x2) / 2, (y1 + y2) / 2
+
+                    # Encode as BASE64 string
+                    bmp_b64 = base64.b64encode(png.read()).decode("ascii")
+                    data_list = textwrap.wrap(bmp_b64, 76)
+
+                    uu = uuid.uuid4()
+                    ksch.write(
+                        f"  (image (at {x:.3f} {y:.3f}) (scale {scale:.3f})\n"
+                        f"    (uuid {uu})\n"
+                         "    (data\n"
+                         )
+                    for s in data_list:
+                        ksch.write(f"      {s}\n")
+                    ksch.write(
+                         "    )\n"
+                         "  )\n"
+                         )
+                else:
+                    print(f"  Cannot find image file {img_filename}")
 
         # Graphical Line Section
         for ci in self.component_instances:

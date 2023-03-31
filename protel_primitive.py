@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import struct
 
 
@@ -660,14 +661,31 @@ class Primitive:
 
         elif prim_type == 30:   # Image
             '''
-            0...15:     ?
+            0...1:      X1
+            2...3:      Y1
+            4...5:      X2
+            6...7:      Y2
+            8:          Border Width (0=smallest, 1=small, 2=medium, 3=large)
+            9...12:     Border Color (RGBA)
+            13:         Selection (0/1)
+            14:         Border On (0/1)
+            15:         XY Ratio 1:1 (0/1)
             16...?:     Name (string8)
             '''
             gelem = {"type":"image"}
             imdef = infile.read(16)
+            gelem["x1"] = struct.unpack('<h', imdef[0:2])[0] * 0.254
+            gelem["y1"] = struct.unpack('<h', imdef[2:4])[0] * 0.254
+            gelem["x2"] = struct.unpack('<h', imdef[4:6])[0] * 0.254
+            gelem["y2"] = struct.unpack('<h', imdef[6:8])[0] * 0.254
+            gelem["border_width"] = imdef[8]
+            gelem["border_color"] = imdef[9:13]
+            gelem["show_border"] = imdef[14]
+            gelem["keep_ratio"] = imdef[15]
             gelem["name"] = ps()
-#            print(f"Image size {len(str(gelem['name']))} bytes")
-#            print(f"  {gelem['name']}")
+            # Store the path to the bin file from which we are reading
+            gelem["path"] = os.path.dirname(infile.name)
+            #print("Image", " ".join(f"{x:02X}" for x in imdef))
 
         elif prim_type == 32:   # Sheet Name
             gelem = {"type":"sheet_name"}

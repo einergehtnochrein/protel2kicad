@@ -140,16 +140,24 @@ if __name__ == "__main__":
             # Put all JSON formatted table lines in a list
             docs = result.stdout.decode("utf-8").splitlines()
 
+            # TODO: Extract all files in the database
             # Extract all sch/pcb/lib and add to the list.
             # Those files have their content stored as base64 encoded binary
             # data in "Data/$binary"
             for d in docs:
                 j = json.loads(d)
                 name, ext = os.path.splitext(j["Name"])
+                # Design files
                 if (ext.upper() == '.SCH') or (ext.upper() == '.PCB') or (ext.upper() == '.LIB') or (ext.upper() == '.PRJ'):
                     with open(os.path.join(db_dir, j["Name"]), "wb+") as f:
                         data = j.get("Data")
                         if data is not None:
                             f.write(base64.b64decode(j["Data"]["$binary"]))
                             args.protelfiles.append(os.path.join(db_dir, j["Name"]))
+                # Image files
+                if (ext.upper() == '.JPG') or (ext.upper() == '.PNG'):
+                    with open(os.path.join(db_dir, j["Name"]), "wb+") as f:
+                        data = j.get("Data")
+                        if data is not None:
+                            f.write(base64.b64decode(j["Data"]["$binary"]))
 
