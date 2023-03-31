@@ -217,20 +217,16 @@ class Primitive:
             gelem["color"] = bezdef[1:5]
             npoints = struct.unpack('<h', bezdef[6:8])[0]
             points = []
-            duplicates = 0
             for i in range(npoints):
                 x = struct.unpack('<h', infile.read(2))[0] * 0.254
                 y = struct.unpack('<h', infile.read(2))[0] * 0.254
-                duplicate = False
-                for p in points:
-                    if (x == p[0]) and (y == p[1]):
-                        duplicate = True
-                if duplicate:
-                    duplicates += 1
-                else:
-                    points.append([x,y])
-            gelem["npoints"] = npoints - duplicates
-            gelem["points"] = points
+                points.append([x,y])
+            if npoints >= 1:
+                # There should always be 3n+1 points for n quadratic
+                # Bezier segments. The last point is duplicated and
+                # can be dropped.
+                gelem["npoints"] = npoints - 1
+                gelem["points"] = points[:-1]
             #print("Bezier", " ".join(f"{x:02X}" for x in bezdef))
 
         elif prim_type == 6:    # Polyline

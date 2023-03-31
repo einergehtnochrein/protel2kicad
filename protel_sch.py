@@ -231,25 +231,38 @@ class SchSymbol:
                         kfile.write(f"          (fill (type {fill_type}) (color {fill_color}))\n")
                     kfile.write( "        )\n")
 
-                if gelem["type"] == "bezier":   # Not yet implemented in KiCad?
-                    '''
+                if gelem["type"] == "bezier":
                     linewidth = gelem["width"]
                     c = gelem["color"]
                     color = f"{c[0]:d} {c[1]:d} {c[2]:d} {(255-c[3])/255:.2f}"
                     npoints = gelem["npoints"]
                     points = gelem["points"]
-    
-                    kfile.write( "        (bezier\n")
-                    kfile.write( "          (pts\n")
-                    #print(f"{npoints} points: {points}")
-                    for n in range(npoints):
-                        x, y = (points[n][0], points[n][1])
-                        kfile.write(f"            (xy {x:.3f} {y:.3f})\n")
-                    kfile.write( "          )\n")
-                    kfile.write(f"          (stroke (width {linewidth:.3f}) (type solid) (color {color}))")
-                    kfile.write( "          (fill (type none))\n")
-                    kfile.write( "        )\n")
-                    '''
+
+                    # Protel stores quadratic Bezier with 3 points per segment.
+                    for i in range(0,npoints,3):
+                        p0, p1, p2 = points[i+0], points[i+1], points[i+2]
+                        # Transform into a cubic Bezier curve (KiCad format)
+                        q0 = p0
+                        x = p0[0] + (p1[0] - p0[0]) * 2/3
+                        y = p0[1] + (p1[1] - p0[1]) * 2/3
+                        q1 = [x, y]
+                        x = p2[0] + (p1[0] - p2[0]) * 2/3
+                        y = p2[1] + (p1[1] - p2[1]) * 2/3
+                        q2 = [x, y]
+                        q3 = p2
+
+                        kfile.write(
+                             "        (bezier\n"
+                             "          (pts\n"
+                            f"            (xy {q0[0]:.3f} {q0[1]:.3f})\n"
+                            f"            (xy {q1[0]:.3f} {q1[1]:.3f})\n"
+                            f"            (xy {q2[0]:.3f} {q2[1]:.3f})\n"
+                            f"            (xy {q3[0]:.3f} {q3[1]:.3f})\n"
+                             "          )\n"
+                            f"          (stroke (width {linewidth:.3f}) (type solid) (color {color}))"
+                             "          (fill (type none))\n"
+                             "        )\n"
+                             )
     
             for gelem in part["prims"]:
                 if gelem["type"] == "pin":
@@ -919,6 +932,42 @@ class Schematic:
                 else:
                     ksch.write(f"    (fill (type background) (color {fill_color}))\n")
                 ksch.write( "  )\n")
+
+            # KiCad crashes when it encounters a free Bezier curve... :-(
+            '''
+            if ci["type"] == "bezier":
+                linewidth = ci["width"]
+                c = ci["color"]
+                color = f"{c[0]:d} {c[1]:d} {c[2]:d} {(255-c[3])/255:.2f}"
+                npoints = ci["npoints"]
+                points = ci["points"]
+
+                # Protel stores quadratic Bezier with 3 points per segment.
+                for i in range(0,npoints,3):
+                    p0, p1, p2 = points[i+0], points[i+1], points[i+2]
+                    # Transform into a cubic Bezier curve (KiCad format)
+                    q0 = p0
+                    x = p0[0] + (p1[0] - p0[0]) * 2/3
+                    y = p0[1] + (p1[1] - p0[1]) * 2/3
+                    q1 = [x, y]
+                    x = p2[0] + (p1[0] - p2[0]) * 2/3
+                    y = p2[1] + (p1[1] - p2[1]) * 2/3
+                    q2 = [x, y]
+                    q3 = p2
+
+                    ksch.write(
+                         "  (bezier\n"
+                         "    (pts\n"
+                        f"      (xy {q0[0]:.3f} {q0[1]:.3f})\n"
+                        f"      (xy {q1[0]:.3f} {q1[1]:.3f})\n"
+                        f"      (xy {q2[0]:.3f} {q2[1]:.3f})\n"
+                        f"       xy {q3[0]:.3f} {q3[1]:.3f})\n"
+                         "    )\n"
+                        f"    (stroke (width {linewidth:.3f}) (type solid) (color {color}))"
+                         " (fill (type none))\n"
+                         "  )\n"
+                         )
+            '''
 
         # Graphical Text Section
         for ci in self.component_instances:
