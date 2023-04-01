@@ -131,7 +131,9 @@ class Primitive:
             '''
             0:          Dot Symbol (0/1)
             1:          Clk Symbol (0/1)
-            2:          ?
+            2:          Electrical Type (0=Input, 1=IO, 2=Output,
+                                         3=OpenCollector, 4=Passive, 5=HiZ,
+                                         6=OpenEmitter, 7=Power)
             3:          Hidden
             4:          Show Name (0/1)
             5:          Show Number (0/1)
@@ -140,7 +142,7 @@ class Primitive:
             8...9:      X
             10...11:    Y
             12:         Rotation (0=0°, 1=90°, 2=180°, 3=270°)
-            13...16:    ?
+            13...16:    Color (RGBA)
             17...       Name (string8)
             ?...        Number (string8)
             '''
@@ -157,6 +159,7 @@ class Primitive:
             gelem["x"] = struct.unpack('<h', pindef[8:10])[0] * 0.254
             gelem["y"] = struct.unpack('<h', pindef[10:12])[0] * 0.254
             gelem["rotation"] = self.get_rotation(pindef[12])
+            gelem["color"] = pindef[13:17]
             gelem["name"] = ps()
             gelem["number"] = ps()
             #print("Pin ", " ".join(f"{x:02X}" for x in pindef), gelem["name"])
@@ -483,17 +486,29 @@ class Primitive:
                 children.append(child)
             gelem["prims"] = children
 
-        elif prim_type == 16:   # Sheet Net
+        elif prim_type == 16:   # Sheet Net (Sheet Entry)
+            '''
+            0:          I/O Type (0=Unspecified, 1=Output, 2=Input, 3=Bidirectional)
+            1:          Style (0=None, 1=Left, 2=Right, 3=Left&Right)
+            2:          Side (0=Left, 1=Right, 2=Top, 3=Bottom)
+            3...4:      Position
+            5...8:      Border Color (RGBA)
+            9...12:     Fill Color (RGBA)
+            13...16:    Text Color (RGBA)
+            17:         Selection (0/1)
+            18...x:     Name (string8)
+            '''
+            shnetdef = infile.read(18)
             gelem = {"type":"sheet_net"}
-            gelem["iotype"] = infile.read(1)[0]
-            gelem["style"] = infile.read(1)[0]
-            gelem["side"] = infile.read(1)[0]
-            gelem["position"] = infile.read(1)[0]
-            infile.read(3)  # color
-            infile.read(3)  # color
-            infile.read(3)  # color
-            infile.read(5)
+            gelem["iotype"] = shnetdef[0]
+            gelem["style"] = shnetdef[1]
+            gelem["side"] = shnetdef[2]
+            gelem["position"] = struct.unpack('<h', shnetdef[3:5])[0]
+            gelem["border_color"] = shnetdef[5:9]
+            gelem["fill_color"] = shnetdef[9:13]
+            gelem["text_color"] = shnetdef[13:17]
             gelem["name"] = ps()
+            #print("Sheet Net", " ".join(f"{x:02X}" for x in shnetdef), gelem["name"])
 
         elif prim_type == 17:   # PowerPort
             '''
@@ -517,25 +532,33 @@ class Primitive:
             #print("Power Port", " ".join(f"{x:02X}" for x in pwrdef), gelem["name"])
 
         elif prim_type == 18:   # Port
+            '''
+            0:          Style (0=none (H), 1=left, 2=right, 3=left&right,
+                               4=none (V), 5=top, 6=bottom, 7=top&bottom
+            1:          I/O Type (0=unspecified, 1=output, 2=input, 3=bidirectional)
+            2:          Alignment (0=center, 1=left, 2=right)
+            3...4:      Length
+            5...6:      X
+            7...8:      Y
+            9...12:     Border Color (RGBA)
+            13...16:    Fill Color (RGBA)
+            17...20:    Text Color (RGBA)
+            21:         Selection (0/1)
+            22...x:     Name (string8)
+            '''
+            portdef = infile.read(22)
             gelem = {"type":"port"}
-            # Style
-            # 0=none (H), 1=left, 2=right, 3=left&right, 4=none (V)
-            # 5=top, 6=bottom, 7=top&bottom
-            gelem["style"] = infile.read(1)[0]
-            # I/O Type
-            # 0=unspecified, 1=output, 2=input, 3=bidirectional
-            gelem["iotype"] = infile.read(1)[0]
-            # Alignment
-            # 0=center, 1=left, 2=right
-            gelem["alignment"] = infile.read(1)[0]
-            gelem["length"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["x"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["y"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            infile.read(3)  # color
-            infile.read(3)  # color
-            infile.read(3)  # color
-            struct.unpack('<i', infile.read(4))[0]
+            gelem["style"] = portdef[0]
+            gelem["iotype"] = portdef[1]
+            gelem["alignment"] = portdef[2]
+            gelem["length"] = struct.unpack('<h', portdef[3:5])[0] * 0.254
+            gelem["x"] = struct.unpack('<h', portdef[5:7])[0] * 0.254
+            gelem["y"] = struct.unpack('<h', portdef[7:9])[0] * 0.254
+            gelem["border_color"] = portdef[9:13]
+            gelem["fill_color"] = portdef[13:17]
+            gelem["text_color"] = portdef[17:21]
             gelem["name"] = ps()
+            #print("Port", " ".join(f"{x:02X}" for x in portdef), gelem["name"])
 
         elif prim_type == 19:   # Probe Directive
             '''
@@ -583,10 +606,18 @@ class Primitive:
             gelem["name"] = ps()
 
         elif prim_type == 22:   # NoERC
+            '''
+            0...1:      X
+            2...3:      Y
+            4...7:      Color (RGBA)
+            8:          Selection (0/1)
+            '''
+            noercdef = infile.read(9)
             gelem = {"type":"noerc"}
-            gelem["x"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["y"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            infile.read(5)
+            gelem["x"] = struct.unpack('<h', noercdef[0:2])[0] * 0.254
+            gelem["y"] = struct.unpack('<h', noercdef[2:4])[0] * 0.254
+            gelem["color"] = noercdef[4:8]
+            #print("NoERC", " ".join(f"{x:02X}" for x in noercdef))
 
         elif prim_type == 23:   # ErrorMarker
             gelem = {"type":"errormarker"}
@@ -616,19 +647,39 @@ class Primitive:
             gelem["color"] = pcbdef[11:15]
 
         elif prim_type == 25:   # Net Label
+            '''
+            0...1:      X
+            2...3:      Y
+            4:          Rotation (0=0°, 1=90°, 2=180°, 3=270°)
+            5...8:      Color (RGBA)
+            9...10:     Font
+            11:         Selection (0/1)
+            '''
+            netldef = infile.read(12)
             gelem = {"type":"net_label"}
-            gelem["x"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["y"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["rotation"] = self.get_rotation(infile.read(1)[0])
-            gelem["color"] = infile.read(4)
-            gelem["font"] = struct.unpack('<h', infile.read(2))[0]
-            infile.read(1)  # selection
+            gelem["x"] = struct.unpack('<h', netldef[0:2])[0] * 0.254
+            gelem["y"] = struct.unpack('<h', netldef[2:4])[0] * 0.254
+            gelem["rotation"] = self.get_rotation(netldef[4])
+            gelem["color"] = netldef[5:9]
+            gelem["font"] = struct.unpack('<h', netldef[9:11])[0]
             gelem["name"] = ps()
+            #print("Net Label", " ".join(f"{x:02X}" for x in netldef), gelem["name"])
 
         elif prim_type == 26:   # Bus
+            '''
+            0:          Line width (0=smallest, 1=small, 2=medium, 3=large)
+            1...4:      Color (RGBA)
+            5:          Selection (0/1)
+            6...7:      N (number of points that follow)
+            N times:
+            0...1:      Xi
+            2...3:      Yi
+            '''
+            busdef = infile.read(8)
             gelem = {"type":"bus"}
-            infile.read(6)
-            npoints = struct.unpack('<h', infile.read(2))[0]
+            gelem["width"] = busdef[0]
+            gelem["color"] = busdef[1:5]
+            npoints = struct.unpack('<h', busdef[6:8])[0]
             points = []
             for n in range(npoints):
                 x = struct.unpack('<h', infile.read(2))[0] * 0.254
@@ -636,6 +687,7 @@ class Primitive:
                 points.append([x,y])
             gelem["npoints"] = npoints
             gelem["points"] = points
+            #print("Bus", " ".join(f"{x:02X}" for x in busdef))
 
         elif prim_type == 27:   # Wire
             '''
@@ -753,20 +805,44 @@ class Primitive:
             gelem["name"] = ps()
 
         elif prim_type == 34:   # Part Designator
+            '''
+            0...1:      X
+            2...3:      Y
+            4:          Rotation (0=0°, 1=90°, 2=180°, 3=270°)
+            5...8:      Color (RGBA)
+            9...10:     Font
+            11:         Selection (0/1)
+            12:         Hide (0/1)
+            '''
+            pddef = infile.read(13)
             gelem = {"type":"part_designator"}
-            gelem["x"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["y"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["rotation"] = self.get_rotation(infile.read(1)[0])
-            infile.read(8)
+            gelem["x"] = struct.unpack('<h', pddef[0:2])[0] * 0.254
+            gelem["y"] = struct.unpack('<h', pddef[2:4])[0] * 0.254
+            gelem["rotation"] = self.get_rotation(pddef[4])
+            gelem["color"] = pddef[5:9]
+            gelem["font"] = struct.unpack('<h', pddef[9:11])[0]
             gelem["name"] = ps()
+            #print("Part Designator", " ".join(f"{x:02X}" for x in pddef), gelem["name"])
 
         elif prim_type == 35:   # Part Type
+            '''
+            0...1:      X
+            2...3:      Y
+            4:          Rotation (0=0°, 1=90°, 2=180°, 3=270°)
+            5...8:      Color (RGBA)
+            9...10:     Font
+            11:         Selection (0/1)
+            12:         Hide (0/1)
+            '''
+            ptdef = infile.read(13)
             gelem = {"type":"part_type"}
-            gelem["x"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["y"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["rotation"] = self.get_rotation(infile.read(1)[0])
-            infile.read(8)
+            gelem["x"] = struct.unpack('<h', ptdef[0:2])[0] * 0.254
+            gelem["y"] = struct.unpack('<h', ptdef[2:4])[0] * 0.254
+            gelem["rotation"] = self.get_rotation(ptdef[4])
+            gelem["color"] = ptdef[5:9]
+            gelem["font"] = struct.unpack('<h', ptdef[9:11])[0]
             gelem["name"] = ps()
+            #print("Part Type", " ".join(f"{x:02X}" for x in ptdef), gelem["name"])
 
         elif prim_type == 36:   # Text field(s)
             '''
@@ -779,12 +855,24 @@ class Primitive:
             #print("Text field", " ".join(f"{x:02X}" for x in tfdef), gelem["text"])
 
         elif prim_type == 37:   # Bus Entry
+            '''
+            0...1:      X1
+            2...3:      Y1
+            4...5:      X1
+            6...7:      Y1
+            8:          Line width (0=smallest, 1=small, 2=medium, 3=large)
+            9...12:     Color (RGBA)
+            13:         Selection (0/1)
+            '''
+            bedef = infile.read(14)
             gelem = {"type":"bus_entry"}
-            gelem["x1"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["y1"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["x2"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            gelem["y2"] = struct.unpack('<h', infile.read(2))[0] * 0.254
-            infile.read(6)
+            gelem["x1"] = struct.unpack('<h', bedef[0:2])[0] * 0.254
+            gelem["y1"] = struct.unpack('<h', bedef[2:4])[0] * 0.254
+            gelem["x2"] = struct.unpack('<h', bedef[4:6])[0] * 0.254
+            gelem["y2"] = struct.unpack('<h', bedef[6:8])[0] * 0.254
+            gelem["width"] = bedef[8]
+            gelem["color"] = bedef[9:13]
+            #print("Bus Entry", " ".join(f"{x:02X}" for x in bedef))
 
         elif prim_type == 38:   # Sheet Part Filename
             infile.read(13)
