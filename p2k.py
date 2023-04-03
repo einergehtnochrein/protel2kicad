@@ -3,6 +3,7 @@
 import argparse
 import base64
 import json
+from kicad_project import KicadProject
 import os
 from protel_pcb import Board
 from protel_sch import Schematic, SchematicLibrary
@@ -30,7 +31,7 @@ def protel_read_string (f):
     return s
 
 
-def convert_pcb (project_name, ppcb, kpcb, kpcblib_path):
+def convert_pcb (project_name, ppcb, kpcb, kpcblib_path, kpro):
     # See if file starts with known header of binary PCB file
     s = protel_read_string(ppcb)
     ppcb.seek(0)
@@ -47,7 +48,11 @@ def convert_pcb (project_name, ppcb, kpcb, kpcblib_path):
         # May be an ASCII file
         print("convert_pcb ascii")
         pcb = Board.from_protel_ascii(project_name, ppcb)
-        pcb.to_kicad7(kpcb, klib)
+        pcb.to_kicad7(kpcb, kpcblib_path)
+
+    pro = KicadProject()
+    pro.apply_proteL_rules(pcb.rules)
+    pro.to_kicad7(kpro)
 
 
 def convert_sch (project_name, psch, ksch, klib, klibpower):
@@ -98,32 +103,11 @@ if __name__ == "__main__":
     except FileExistsError:
         pass
 
+    # Inflate .DDB archives
     for name_infile in args.protelfiles:
         # Check file extension for supported files
         basename = os.path.basename(name_infile)
         filename, fileext = os.path.splitext(basename)
-
-        if fileext.upper() == '.LIB':
-            print("processing", name_infile)
-            with open(name_infile, "rb") as plib:
-                kschlib_path = os.path.join("kicad", filename + "_export.kicad_sym")
-                kpcblib_path = os.path.join("kicad", filename + "_export_pcb.pretty")
-                convert_lib(filename, plib, kschlib_path, kpcblib_path)
-
-        if (fileext.upper() == '.SCH') or (fileext.upper() == '.PRJ'):
-            print("processing", name_infile)
-            with open(name_infile, "rb") as psch:
-                ksch = open("kicad/" + filename + ".kicad_sch", "w+")
-                klib = open("kicad/" + filename + "_export.kicad_sym", "w+")
-                klibpower = open("kicad/" + filename + "_export_power.kicad_sym", "w+")
-                convert_sch(filename, psch, ksch, klib, klibpower)
-
-        if fileext.upper() == '.PCB':
-            print("processing", name_infile)
-            with open(name_infile, "rb") as ppcb:
-                kpcb = open("kicad/" + filename + ".kicad_pcb", "w+")
-                kpcblib_path = os.path.join("kicad", filename + "_export_pcb.pretty")
-                convert_pcb(filename, ppcb, kpcb, kpcblib_path)
 
         if fileext.upper() == '.DDB':
             print("processing", name_infile)
@@ -161,3 +145,37 @@ if __name__ == "__main__":
                         if data is not None:
                             f.write(base64.b64decode(j["Data"]["$binary"]))
 
+    # LIB/SCH files
+    for name_infile in args.protelfiles:
+        # Check file extension for supported files
+        basename = os.path.basename(name_infile)
+        filename, fileext = os.path.splitext(basename)
+
+        if fileext.upper() == '.LIB':
+            print("processing", name_infile)
+            with open(name_infile, "rb") as plib:
+                kschlib_path = os.path.join("kicad", filename + "_export.kicad_sym")
+                kpcblib_path = os.path.join("kicad", filename + "_export_pcb.pretty")
+                convert_lib(filename, plib, kschlib_path, kpcblib_path)
+
+        if (fileext.upper() == '.SCH') or (fileext.upper() == '.PRJ'):
+            print("processing", name_infile)
+            with open(name_infile, "rb") as psch:
+                ksch = open("kicad/" + filename + ".kicad_sch", "w+")
+                klib = open("kicad/" + filename + "_export.kicad_sym", "w+")
+                klibpower = open("kicad/" + filename + "_export_power.kicad_sym", "w+")
+                convert_sch(filename, psch, ksch, klib, klibpower)
+
+    # PCB files
+    for name_infile in args.protelfiles:
+        # Check file extension for supported files
+        basename = os.path.basename(name_infile)
+        filename, fileext = os.path.splitext(basename)
+
+        if fileext.upper() == '.PCB':
+            print("processing", name_infile)
+            with open(name_infile, "rb") as ppcb:
+                kpcb = open("kicad/" + filename + ".kicad_pcb", "w+")
+                kpcblib_path = os.path.join("kicad", filename + "_export_pcb.pretty")
+                kpro = open("kicad/" + filename + ".kicad_pro", "w+")
+                convert_pcb(filename, ppcb, kpcb, kpcblib_path, kpro)
