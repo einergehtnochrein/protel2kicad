@@ -1235,12 +1235,16 @@ class Schematic:
                     if child["type"] == "sheet_file_name":
                         sheet_file_name_base, sheet_file_name_ext = os.path.splitext(str(child["name"]))
                         sheet_file_name = sheet_file_name_base + ".kicad_sch"
+                c = ci["border_color"]
+                border_color = f"{c[0]:d} {c[1]:d} {c[2]:d} {(255-c[3])/255:.2f}"
+                c = ci["fill_color"]
+                fill_color = f"{c[0]:d} {c[1]:d} {c[2]:d} {(255-c[3])/255:.2f}"
 
                 uu = uuid.uuid4()
                 ksch.write(f"  (sheet (at {xsheet:.3f} {ysheet:.3f})\n")
                 ksch.write(f"    (size {xsize:.3f} {ysize:.3f})\n")
-                ksch.write( "    (stroke (width 0) (type default) (color 0 0 0 0))\n")
-                ksch.write( "    (fill (type background))\n")
+                ksch.write(f"    (stroke (width 0) (type default) (color {border_color}))\n")
+                ksch.write(f"    (fill (type background) (color {fill_color}))\n")
                 ksch.write(f"    (uuid {uu})\n")
                 ksch.write(f"    (property \"Sheet name\" \"{sheet_name}\" (id 0) (at {xsheet:.3f} {ysheet:.3f} 0)\n")
                 ksch.write( "      (effects (font (size 1.0 1.0)) (justify bottom left))\n")

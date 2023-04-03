@@ -477,6 +477,8 @@ class Primitive:
             gelem["y"] = struct.unpack('<h', shdef[2:4])[0] * 0.254
             gelem["xsize"] = struct.unpack('<h', shdef[4:6])[0] * 0.254
             gelem["ysize"] = struct.unpack('<h', shdef[6:8])[0] * 0.254
+            gelem["border_color"] = shdef[9:13]
+            gelem["fill_color"] = shdef[13:17]
             #print("Sheet Symbol", " ".join(f"{x:02X}" for x in shdef))
             children = []
             while True:
