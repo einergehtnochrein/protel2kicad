@@ -1553,7 +1553,7 @@ class Board:
                         trot = float(prim["ROTATION"])
                         tlayer = "F.Fab"
                         mirror = ""
-                        if fp["layer"] == "BottomLayer":    # TODO
+                        if l == "B.Cu":
                             tlayer = "B.Fab"
                             mirror = " mirror"
     
@@ -1577,7 +1577,7 @@ class Board:
                         trot = float(prim["ROTATION"])
                         tlayer = "F.Fab"
                         mirror = ""
-                        if fp["layer"] == "BottomLayer":    # TODO
+                        if l == "B.Cu":
                             tlayer = "B.Fab"
                             mirror = " mirror"
     
@@ -1590,7 +1590,6 @@ class Board:
                              )
     
                 if prim["RECORD"] == "Track":
-                    layer = self.layers.translate(prim["LAYER"])[0]["layer"]
                     x1, y1 = self.to_point(prim["X1"], prim["Y1"])
                     x1, y1 = pointrotate(compx, compy, x1, y1, comprotation)
                     x2, y2 = self.to_point(prim["X2"], prim["Y2"])
@@ -1603,6 +1602,10 @@ class Board:
 
                     s_start = f"(start {x1:.3f} {y1:.3f})"
                     s_end = f"(end {x2:.3f} {y2:.3f})"
+                    ldef = self.layers.translate(prim["LAYER"])
+                    layer = ldef[0]["layer"]
+                    if (l == "B.Cu") and (len(ldef) >= 2):
+                        layer = ldef[1]["layer"]
                     s_layer = f"(layer {layer})"
                     s_width = f"(width {width:.3f})"
                     kpcb.write(f"    (fp_line {s_start} {s_end} {s_layer} {s_width})\n")
