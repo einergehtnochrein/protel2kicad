@@ -9,7 +9,7 @@ This is an attempt to convert schematics, boards and (symbol) libraries from the
 Clone this repository into a folder of your choice. The converter must be called from this directory.
 
 The following Python3 modules must be installed:<br>
-`argparse, base64, os, signal, subprocess, sys`
+`argparse, base64, os, PIL, signal, subprocess, sys`
 
 The following external tool must be installed (Debian package) if you want to convert `.DDB` database files directly:<br>
 `mdbtools`
@@ -18,7 +18,7 @@ The following external tool must be installed (Debian package) if you want to co
 Clone this repository into a folder of your choice. The converter must be called from this directory.
 
 The following Python3 modules must be installed:<br>
-`argparse, base64, os, signal, subprocess, sys`
+`argparse, base64, os, PIL, signal, subprocess, sys`
 
 A Windows build of `mdbtools` is required. Clone this repository `https://github.com/lsgunth/mdbtools-win`, it comes with the Windows executables prebuilt in the root directory. Add that directory to your PATH.
 
@@ -66,7 +66,6 @@ There are quite a few...   The list below is definitely incomplete!
   * PCB design rules are not supported. Requires manual transfer.
   * Many other bugs... :-(
   * If your design uses oval pads/holes, workarounds were required due to the lack of native support for this feature in Protel. After conversion, you must manually convert these pads/footprints to use oval holes in KiCad.
-  * Bezier curves are not yet supported.
   * 'Orientation' (object rotation by 0/90/180/270°) is notoriously buggy.
   * Customized mechanical layer names are not yet supported (patch the `protel_pcb.py` module if needed).
   * Schematics very likely require extra `PWR_FLAG` objects. Protel does not distinguish between power_in and power_out pins, and all such pins are converted to 'Power Input' in KiCad.
