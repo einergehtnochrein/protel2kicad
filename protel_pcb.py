@@ -1954,7 +1954,7 @@ class Board:
                     keyy = f'VY{i}'
                     if (keyx in prim) and (keyy in prim):
                         x, y = self.to_point(prim[keyx], prim[keyy])
-                        kpcb.write(f'        (xy {x:.3f} {y:.3f})')
+                        kpcb.write(f'        (xy {x:.3f} {y:.3f})\n')
                     else:
                         break
                     i += 1
