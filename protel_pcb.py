@@ -475,6 +475,8 @@ class Board:
                         pcb.freegraphics.append(rec)
 
                 if record == "Fill":
+                    rec["KEEPOUT"] = "KEEPOUT" == rec.get("LAYER", "")
+                    rec["ROTATION"] = float(rec.get("ROTATION", "0"))
                     if "COMPONENT" in rec:
                         index, comp = pcb.find_fp(rec["COMPONENT"])
                         comp["prims"].append(rec)
@@ -1395,6 +1397,7 @@ class Board:
                         filldef = ppcb.read(section_element_size)
                         #print(" ".join(f"{x:02X}" for x in filldef))
                         fill = {"RECORD":"Fill"}
+                        fill["KEEPOUT"] = int(filldef[2]) == 56     # TODO
                         fill["X1"] = struct.unpack('<i', filldef[19:23])[0] / 1e4
                         fill["Y1"] = struct.unpack('<i', filldef[23:27])[0] / 1e4
                         fill["X2"] = struct.unpack('<i', filldef[27:31])[0] / 1e4
