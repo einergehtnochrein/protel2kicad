@@ -23,7 +23,7 @@ class KicadProject:
             mils = float(mils)
         return mils * 0.0254
 
-    def apply_proteL_rules (self, prules):
+    def apply_protel_rules (self, prules):
         for prule in prules:
             if prule["RULEKIND"] == "Clearance":
                 s1cnt = int(prule["SCOPE1COUNT"])

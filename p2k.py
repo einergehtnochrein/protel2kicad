@@ -51,7 +51,7 @@ def convert_pcb (project_name, ppcb, kpcb, kpcblib_path, kpro):
         pcb.to_kicad7(kpcb, kpcblib_path)
 
     pro = KicadProject()
-    pro.apply_proteL_rules(pcb.rules)
+    pro.apply_protel_rules(pcb.rules)
     pro.to_kicad7(kpro)
 
 
