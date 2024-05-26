@@ -329,6 +329,13 @@ class Board:
         y = 40 + self.offset[1] - self.to_mm(ymils)
         return x, y
 
+    def to_kicad_angle (self, protel_angle):
+        # Protel angles:
+        # Start at 3 o'clock and count counterclockwise
+        # KiCad angles:
+        # Start at 12 o'clock and count clockwise
+        return 90.0 - protel_angle
+
     def ascii_to_dict (self, line):
         fields = line.split('|')
         rec = {}
@@ -1521,16 +1528,15 @@ class Board:
                         kpcb.write(f"      (width {width})\n")
                         kpcb.write( "    )\n")
                     else:
-                        alpha3 = end_angle
-                        a = ((360 + end_angle - start_angle) / 2) % 180
-                        alpha2 = start_angle + a
-                        alpha1 = start_angle
-                        x1 = cx + r * math.cos(alpha1 / 57.29578)
-                        y1 = cy - r * math.sin(alpha1 / 57.29578)
-                        x2 = cx + r * math.cos(alpha2 / 57.29578)
-                        y2 = cy - r * math.sin(alpha2 / 57.29578)
-                        x3 = cx + r * math.cos(alpha3 / 57.29578)
-                        y3 = cy - r * math.sin(alpha3 / 57.29578)
+                        alpha1 = self.to_kicad_angle(start_angle)
+                        alpha3 = self.to_kicad_angle(end_angle)
+                        alpha2 = alpha1 + ((360 + alpha3 - alpha1) % 360) / 2
+                        x1 = cx + r * math.sin(alpha1 / 57.29578)
+                        y1 = cy - r * math.cos(alpha1 / 57.29578)
+                        x2 = cx + r * math.sin(alpha2 / 57.29578)
+                        y2 = cy - r * math.cos(alpha2 / 57.29578)
+                        x3 = cx + r * math.sin(alpha3 / 57.29578)
+                        y3 = cy - r * math.cos(alpha3 / 57.29578)
 
                         kpcb.write( "    (fp_arc\n")
                         kpcb.write(f"      (start {x1:.3f} {y1:.3f})\n")
@@ -1722,16 +1728,19 @@ class Board:
                     cx, cy = self.to_point(prim["LOCATION.X"], prim["LOCATION.Y"])
                     r = self.to_mm(prim["RADIUS"])
                     width = self.to_mm(prim["WIDTH"])
-                    # TODO chaos...
-                    end_angle = 360.0 - float(prim["STARTANGLE"])
-                    start_angle = 360.0 - float(prim["ENDANGLE"])
-                    x1 = cx + r * math.cos(start_angle / 57.29578)
-                    y1 = cy + r * math.sin(start_angle / 57.29578)
-                    x2 = cx + r * math.cos((start_angle + end_angle) / (2*57.29578))
-                    y2 = cy + r * math.sin((start_angle + end_angle) / (2*57.29578))
-                    x3 = cx + r * math.cos(end_angle / 57.29578)
-                    y3 = cy + r * math.sin(end_angle / 57.29578)
-                    # "start" is the center, "end" is the starting point on the arc...
+
+                    start_angle = float(prim["ENDANGLE"]) % 360
+                    end_angle = float(prim["STARTANGLE"]) % 360
+                    alpha1 = self.to_kicad_angle(start_angle)
+                    alpha3 = self.to_kicad_angle(end_angle)
+                    alpha2 = alpha1 + ((360 + alpha3 - alpha1) % 360) / 2
+                    x1 = cx + r * math.sin(alpha1 / 57.29578)
+                    y1 = cy - r * math.cos(alpha1 / 57.29578)
+                    x2 = cx + r * math.sin(alpha2 / 57.29578)
+                    y2 = cy - r * math.cos(alpha2 / 57.29578)
+                    x3 = cx + r * math.sin(alpha3 / 57.29578)
+                    y3 = cy - r * math.cos(alpha3 / 57.29578)
+
                     kpcb.write(
                         f"  (gr_arc"
                         f" (start {x1:.3f} {y1:.3f})"
@@ -1838,16 +1847,19 @@ class Board:
                     cx, cy = self.to_point(prim["LOCATION.X"], prim["LOCATION.Y"])
                     r = self.to_mm(prim["RADIUS"])
                     width = self.to_mm(prim["WIDTH"])
-                    # TODO chaos...
-                    end_angle = 360.0 - float(prim["STARTANGLE"])
-                    start_angle = 360.0 - float(prim["ENDANGLE"])
-                    x1 = cx + r * math.cos(start_angle / 57.29578)
-                    y1 = cy + r * math.sin(start_angle / 57.29578)
-                    x2 = cx + r * math.cos((start_angle + end_angle) / (2*57.29578))
-                    y2 = cy + r * math.sin((start_angle + end_angle) / (2*57.29578))
-                    x3 = cx + r * math.cos(end_angle / 57.29578)
-                    y3 = cy + r * math.sin(end_angle / 57.29578)
-                    # "start" is the center, "end" is the starting point on the arc...
+
+                    start_angle = prim["ENDANGLE"] % 360
+                    end_angle = prim["STARTANGLE"] % 360
+                    alpha1 = self.to_kicad_angle(start_angle)
+                    alpha3 = self.to_kicad_angle(end_angle)
+                    alpha2 = alpha1 + ((360 + alpha3 - alpha1) % 360) / 2
+                    x1 = cx + r * math.sin(alpha1 / 57.29578)
+                    y1 = cy - r * math.cos(alpha1 / 57.29578)
+                    x2 = cx + r * math.sin(alpha2 / 57.29578)
+                    y2 = cy - r * math.cos(alpha2 / 57.29578)
+                    x3 = cx + r * math.sin(alpha3 / 57.29578)
+                    y3 = cy - r * math.cos(alpha3 / 57.29578)
+
                     netno = 1 + int(prim["NET"])
                     if netno >= 1:
                         kpcb.write(
