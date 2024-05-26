@@ -1996,7 +1996,7 @@ class Board:
 
                     netname = layer['netname']
                     netid = self.get_netid_by_name(netname)
-                    s_netname = f'(net_name )'
+                    s_netname = f'(net_name {netname})'
 
                     if netname == '(No Net)':
                         s_netname = ''
