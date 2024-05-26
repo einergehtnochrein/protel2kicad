@@ -325,6 +325,7 @@ class Board:
         self.file = file
         self.offset = [0,0]
         self.ps = ProtelString(file)
+        self.bounding_box = None
 
     def to_mm (self, mils):
         if type(mils) == str:
@@ -421,6 +422,14 @@ class Board:
                     ymin = min(ymin, y2)
     
             self.offset = [-xmin, ymax]
+
+    def get_netid_by_name (self, name):
+        netid = 0
+        for id, prim in self.nets.items():
+            if name == prim['NAME']:
+                netid = id
+                break
+        return netid
 
     @classmethod
     def from_protel_ascii (cls, filename, ppcb):
@@ -1511,6 +1520,14 @@ class Board:
         kpcb.write("\n")
 
         # ---------- Footprints ----------
+
+        # While processing footprints and free graphics elements, update the bounding box based on elements
+        # in the Edge.Cuts layer.
+        bx1 = math.inf
+        by1 = math.inf
+        bx2 = -math.inf
+        by2 = -math.inf
+
         for fp in self.fps:
             if not "layer" in fp.keys():
                 continue
@@ -1564,6 +1581,12 @@ class Board:
                         kpcb.write(f"      (width {width})\n")
                         kpcb.write( "    )\n")
     
+                        if klayer == 'Edge.Cuts':
+                            bx1 = min(x1 + compx, x2 + compx, x3 + compx, bx1)
+                            by1 = min(y1 + compy, y2 + compy, y3 + compy, by1)
+                            bx2 = max(x1 + compx, x2 + compx, x3 + compx, bx2)
+                            by2 = max(y1 + compy, y2 + compy, y3 + compy, by2)
+
                 if prim["RECORD"] == "Text":
                     if "DESIGNATOR" in prim:
                         designator = prim["TEXT"]
@@ -1634,6 +1657,12 @@ class Board:
                     s_width = f"(width {width:.3f})"
                     kpcb.write(f"    (fp_line {s_start} {s_end} {s_layer} {s_width})\n")
     
+                    if layer == 'Edge.Cuts':
+                        bx1 = min(x1 + compx, x2 + compx, bx1)
+                        by1 = min(y1 + compy, y2 + compy, by1)
+                        bx2 = max(x1 + compx, x2 + compx, bx2)
+                        by2 = max(y1 + compy, y2 + compy, by2)
+
                 if prim["RECORD"] == "Fill":
                     fillrotation = float(prim["ROTATION"])
                     klayers = self.layers.translate(prim["LAYER"])
@@ -1738,7 +1767,13 @@ class Board:
                             f" (start {x1:.3f} {y1:.3f}) (end {x2:.3f} {y2:.3f})"
                             f" (layer {layer}) (width {width:.3f}))\n"
                             )
-    
+
+                    if layer == 'Edge.Cuts':
+                        bx1 = min(x1, x2, bx1)
+                        by1 = min(y1, y2, by1)
+                        bx2 = max(x1, x2, bx2)
+                        by2 = max(y1, y2, by2)
+
             if prim["RECORD"] == "Arc":
                 if not "POLYGON" in prim:
                     layer = self.layers.translate(prim["LAYER"])[0]["layer"]
@@ -1766,7 +1801,13 @@ class Board:
                         f" (end {x3:.3f} {y3:.3f})"
                         f" (layer {layer}) (width {width:3f}))\n"
                         )
-    
+
+                    if layer == 'Edge.Cuts':
+                        bx1 = min(x1, x2, x3, bx1)
+                        by1 = min(y1, y2, y3, by1)
+                        bx2 = max(x1, x2, x3, bx2)
+                        by2 = max(y1, y2, y3, by2)
+
             if prim["RECORD"] == "Text":
                 for klayer in klayers:
                     layer = klayer["layer"]
@@ -1833,6 +1874,10 @@ class Board:
                          )
     
         kpcb.write("\n")
+
+        # Save bounding box coordinates
+        if (bx1 < bx2) and (by1 < by2):
+            self.bounding_box = {"x1":bx1, "y1":by1, "x2":bx2, "y2":by2}
 
         # ---------- Images ----------
         # There are no images encoded in Protel PCB files
@@ -1941,6 +1986,37 @@ class Board:
                 kpcb.write("  )\n")
                 kpcb.write("\n")
 
-        kpcb.write(")\n")
+        # Add filled zones on power planes.
+        # Board boundary must be known
+        if self.bounding_box is not None:
+            # Check for power planes (they have Kicad type 'mixed')
+            for layer in self.layers.stack:
+                if layer["type"] == "mixed":
+                    #print("power plane:", layer, self.bounding_box, layer["netname"])
+
+                    netname = layer['netname']
+                    netid = self.get_netid_by_name(netname)
+                    s_netname = f'(net_name )'
+
+                    if netname == '(No Net)':
+                        s_netname = ''
+                        netid = -1
+
+                    kpcb.write(f'  (zone (net {netid+1}) {s_netname} (layer {layer["kicad"]}) (hatch edge 0.508)\n')
+                    kpcb.write( '    (priority 0)\n')       # Lowest priority
+                    kpcb.write( '    (connect_pads (clearance 0.2))\n')
+                    kpcb.write( '    (min_thickness 0.1778)\n')
+                    kpcb.write( '    (fill yes (arc_segments 16) (thermal_gap 0.254) (thermal_bridge_width 0.4064))\n')
+                    kpcb.write( '    (polygon\n')
+                    kpcb.write( '      (pts\n')
+                    kpcb.write(f'        (xy {self.bounding_box["x1"]:.3f} {self.bounding_box["y1"]:.3f})\n')
+                    kpcb.write(f'        (xy {self.bounding_box["x2"]:.3f} {self.bounding_box["y1"]:.3f})\n')
+                    kpcb.write(f'        (xy {self.bounding_box["x2"]:.3f} {self.bounding_box["y2"]:.3f})\n')
+                    kpcb.write(f'        (xy {self.bounding_box["x1"]:.3f} {self.bounding_box["y2"]:.3f})\n')
+                    kpcb.write( '      )\n')
+                    kpcb.write( '    )\n')
+                    kpcb.write( '  )\n')
 
         # ---------- Groups ----------
+
+        kpcb.write(")\n")
