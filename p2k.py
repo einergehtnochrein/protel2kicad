@@ -77,6 +77,9 @@ def convert_lib (filename, plib, kschlib_path, kpcblib_path):
         kschlib = open(kschlib_path, "w+")
         lib = SchematicLibrary.from_protel_bin(filename, plib)
         lib.to_kicad7(kschlib)
+    elif header == "PCB 3.0 Binary Library File":
+        print("convert_pcblib bin 3.0")
+        print("  PCBLIB NOT YET IMPLEMENTED!")
     elif header == "PCB 4.0 Binary Library File":
         print("convert_pcblib bin 4.0")
         print("  PCBLIB NOT YET IMPLEMENTED!")
