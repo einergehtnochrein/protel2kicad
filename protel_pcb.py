@@ -1813,15 +1813,33 @@ class Board:
                     x1, y1 = self.to_point(prim["X1"], prim["Y1"])
                     x2, y2 = self.to_point(prim["X2"], prim["Y2"])
 
-                    kpcb.write(
-                        f"  (gr_rect\n"
-                        f"    (start {x1:.3f} {y1:.3f}) (end {x2:.3f} {y2:.3f})\n"
-                        f"    (layer \"{layer}\")\n"
-                        f"    (width 0.1)\n"
-                        f"    (fill solid)\n"
-                        f"  )\n"
-                        )
-    
+                    # Keepouts will be defined later as zones
+                    if not prim["KEEPOUT"]:
+                        if prim["ROTATION"] == 0:
+                            kpcb.write(
+                                f'  (gr_rect (start {x1:.3f} {y1:.3f}) (end {x2:.3f} {y2:.3f})\n'
+                                f'    (stroke (width 0.1) (type solid)) (fill solid) (layer "{layer}"))\n'
+                                )
+                        else:
+                            # Rotate rectangle vertices
+                            cx = (x1 + x2) / 2
+                            cy = (y1 + y2) / 2
+                            angle = -prim["ROTATION"]
+                            xa, ya = pointrotate(cx, cy, x1, y1, angle)
+                            xb, yb = pointrotate(cx, cy, x2, y1, angle)
+                            xc, yc = pointrotate(cx, cy, x2, y2, angle)
+                            xd, yd = pointrotate(cx, cy, x1, y2, angle)
+                            kpcb.write(
+                                 '  (gr_poly\n'
+                                 '    (pts\n'
+                                f'      (xy {xa:.3f} {ya:.3f})\n'
+                                f'      (xy {xb:.3f} {yb:.3f})\n'
+                                f'      (xy {xc:.3f} {yc:.3f})\n'
+                                f'      (xy {xd:.3f} {yd:.3f})\n'
+                                 '    )\n'
+                                f'    (stroke (width 0.1) (type solid)) (fill solid) (layer "{layer}"))\n'
+                                )
+
             if prim["RECORD"] == "Dimension":
                 for klayer in klayers:
                     layer = klayer["layer"]
@@ -1943,6 +1961,41 @@ class Board:
                 kpcb.write( '      )\n')
                 kpcb.write( '    )\n')
                 kpcb.write( '  )\n')
+
+        # Free fills on keepout layer translate to zones
+        # TODO: Must use design rules to adjust size!
+        for prim in self.freegraphics:
+            klayers = self.layers.translate(prim["LAYER"])
+
+            if prim["RECORD"] == "Fill":
+                if prim["KEEPOUT"]:
+                    x1, y1 = self.to_point(prim["X1"], prim["Y1"])
+                    x2, y2 = self.to_point(prim["X2"], prim["Y2"])
+
+                    # Rotate rectangle vertices
+                    cx = (x1 + x2) / 2
+                    cy = (y1 + y2) / 2
+                    angle = -prim["ROTATION"]
+                    xa, ya = pointrotate(cx, cy, x1, y1, angle)
+                    xb, yb = pointrotate(cx, cy, x2, y1, angle)
+                    xc, yc = pointrotate(cx, cy, x2, y2, angle)
+                    xd, yd = pointrotate(cx, cy, x1, y2, angle)
+
+                    kpcb.write( '  (zone (net 0) (net_name "") (layers "F&B.Cu") '
+                               f'(name "keepout_{x1}_{y1}") (hatch edge 0.5)\n')
+                    kpcb.write( '    (keepout (tracks not_allowed) (vias not_allowed) '
+                                '(pads not_allowed) (copperpour not_allowed))\n')
+                    kpcb.write( '    (polygon\n')
+                    kpcb.write( '      (pts\n')
+                    x1, y1 = self.to_point(prim["X1"], prim["Y1"])
+                    x2, y2 = self.to_point(prim["X2"], prim["Y2"])
+                    kpcb.write(f'        (xy {xa:.3f} {ya:.3f})\n')
+                    kpcb.write(f'        (xy {xb:.3f} {yb:.3f})\n')
+                    kpcb.write(f'        (xy {xc:.3f} {yc:.3f})\n')
+                    kpcb.write(f'        (xy {xd:.3f} {yd:.3f})\n')
+                    kpcb.write( '      )\n')
+                    kpcb.write( '    )\n')
+                    kpcb.write( '  )\n')
 
         # Add filled zones on power planes.
         # Board boundary must be known
