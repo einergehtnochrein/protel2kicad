@@ -560,7 +560,7 @@ class Board:
                     for field in fields:
                         key_value = field.split('=')
                         if len(key_value) == 2:
-                            pcb.board[key_value[0]] = key_value[1]
+                            pcb.board[key_value[0]] = key_value[1].strip()
                     pcb.board["ORIGINX"] = float(re.sub("[^0-9.]", "", pcb.board.get("ORIGINX", 0)))
                     pcb.board["ORIGINY"] = float(re.sub("[^0-9.]", "", pcb.board.get("ORIGINY", 0)))
 
