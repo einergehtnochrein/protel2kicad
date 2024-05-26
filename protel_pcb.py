@@ -161,9 +161,9 @@ class Layers:
             nxt = self.d[layer_num]["next"]
 
             # In case this is an inner layer: Determine the type for KiCad,
-            # "signal" (MidLayerX) or "power" (InternalPlaneX, Protel layer
+            # "signal" (MidLayerX) or "mixed" (InternalPlaneX, Protel layer
             # ID's 39...54).
-            kicad_type = "power" if (layer_num >= 39) and (layer_num <= 54) else "signal"
+            kicad_type = "mixed" if (layer_num >= 39) and (layer_num <= 54) else "signal"
 
             # Add current layer to the stack
             layer = {"protel": self.d[layer_num]["name"], "type": kicad_type}
@@ -176,6 +176,12 @@ class Layers:
             else:                   # Inner layer
                 layer["kicad"] = f"In{n}"
                 layer["kicad_num"] = n
+
+            netname = ""
+            if 39 <= layer_num <= 54:
+                netname = board.get(f'PLANE{layer_num - 39 + 1}NETNAME', None)
+            layer["netname"] = netname
+
             self.stack.append(layer)
 
             n += 1
@@ -187,7 +193,7 @@ class Layers:
         # at the bottom.
         n = self.num_copper_layers
         if (n % 2) == 1:
-            layer = {"protel":f"auto_inner{n-1}", "type":"power", "kicad":f"In{n-1}", "kicad_num":n-1}
+            layer = {"protel":f"auto_inner{n-1}", "type":"mixed", "kicad":f"In{n-1}", "kicad_num":n-1}
             self.stack = self.stack[0:n-1] + [layer] + [self.stack[n-1]]
             self.num_copper_layers += 1
 
