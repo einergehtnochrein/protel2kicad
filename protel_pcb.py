@@ -230,6 +230,10 @@ class Layers:
             layer = "Top Solder Mask"
         if layer == "BottomSolder":
             layer = "Bottom Solder Mask"
+        if layer == "TopPaste":
+            layer = "Top Paste Mask"
+        if layer == "BottomPaste":
+            layer = "Bottom Paste Mask"
         if layer == "TopOverlay":
             layer = "Top Silkscreen"
         if layer == "BottomOverlay":
@@ -292,7 +296,8 @@ class Layers:
                      "Mechanical13": [{"layer":"Cmts.User", "mirror":""}],
                      "Mechanical14": [{"layer":"Cmts.User", "mirror":""}],
                      "Mechanical15": [{"layer":"Cmts.User", "mirror":""}],
-                     "Mechanical16": [{"layer":"F.CrtYd", "mirror":""}, {"layer":"B.CrtYd", "mirror":"mirror"}]
+                     "Mechanical16": [{"layer":"F.CrtYd", "mirror":""}, {"layer":"B.CrtYd", "mirror":"mirror"}],
+                     "DrillDrawing": [{"layer":"Cmts.User", "mirror":""}]
                      }
     
         klayer = translate.get(layer, None)
