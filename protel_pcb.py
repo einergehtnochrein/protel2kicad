@@ -1920,11 +1920,10 @@ class Board:
             if netid is not None:
                 netid = int(netid)
                 netprim = self.nets[netid+1]
-                polylayer = "F.Cu"
-                if prim["LAYER"] == "BottomLayer":  # TODO
-                    polylayer = "B.Cu"
-    
+                polylayer = self.layers.translate(prim["LAYER"])[0]["layer"]
+
                 kpcb.write(f'  (zone (net {netid+1}) (net_name {netprim["NAME"]}) (layer {polylayer}) (hatch edge 0.508)\n')
+                kpcb.write( '    (priority 1)\n')       # Take priority over background fill in power planes
                 kpcb.write( '    (connect_pads (clearance 0.2))\n')
                 kpcb.write( '    (min_thickness 0.1778)\n')
                 kpcb.write( '    (fill yes (arc_segments 16) (thermal_gap 0.254) (thermal_bridge_width 0.4064))\n')
