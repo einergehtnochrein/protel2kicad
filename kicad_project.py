@@ -134,5 +134,5 @@ class KicadProject:
             "text_variables": self.get_text_variables()
             }
         kpro.write(json.dumps(pro, indent=2))
-        print(f'Board rules:\n{self.rule_log}')
+        #print(f'Board rules:\n{self.rule_log}')
 
