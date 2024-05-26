@@ -741,12 +741,12 @@ class Board:
                 0:          Selection (0/1)
                 1:          ?
                 2:          Layer
-                3...4:      ID
-                5:          ?
-                6...9:      X?
-                10...13:    Y?
-                14...17:    X?
-                18...21:    Y?
+                3:          ?
+                4...5:      ID
+                6...9:      Bounding Box X1
+                10...13:    Bounding Box Y1
+                14...17:    Bounding Box X2
+                18...21:    Bounding Box Y2
                 22:         ?
                 23...26:    X1
                 27...30:    Y1
@@ -765,6 +765,10 @@ class Board:
                     #print(" ".join(f"{x:02X}" for x in dimdef))
                     dim = {"RECORD":"Dimension"}
                     dim["LAYER"] = pcb.layers.get_name(dimdef[2])
+                    dim["BBOX_X1"] = struct.unpack('<i', dimdef[6:10])[0] / 1e4
+                    dim["BBOX_Y1"] = struct.unpack('<i', dimdef[10:14])[0] / 1e4
+                    dim["BBOX_X2"] = struct.unpack('<i', dimdef[14:18])[0] / 1e4
+                    dim["BBOX_Y2"] = struct.unpack('<i', dimdef[18:22])[0] / 1e4
                     dim["X1"] = struct.unpack('<i', dimdef[23:27])[0] / 1e4
                     dim["Y1"] = struct.unpack('<i', dimdef[27:31])[0] / 1e4
                     dim["X2"] = struct.unpack('<i', dimdef[31:35])[0] / 1e4
