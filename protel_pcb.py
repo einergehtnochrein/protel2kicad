@@ -1446,33 +1446,32 @@ class Board:
         kpcb.write( "\n")
     
         # ---------- Page ----------
-        kpcb.write("  (paper \"A3\")\n")
-        kpcb.write("\n")
+        kpcb.write('  (paper "A3")\n')
 
         # ---------- Layers ----------
-        kpcb.write("  (layers\n")
+        kpcb.write('  (layers\n')
         for layer in self.layers.stack:
-            kpcb.write(f"    ({layer['kicad_num']} \"{layer['kicad']}\" {layer['type']})\n")
-        kpcb.write("    (32 \"B.Adhes\" user \"B.Adhesive\")\n")
-        kpcb.write("    (33 \"F.Adhes\" user \"F.Adhesive\")\n")
-        kpcb.write("    (34 \"B.Paste\" user)\n")
-        kpcb.write("    (35 \"F.Paste\" user)\n")
-        kpcb.write("    (36 \"B.SilkS\" user \"B.Silkscreen\")\n")
-        kpcb.write("    (37 \"F.SilkS\" user \"F.Silkscreen\")\n")
-        kpcb.write("    (38 \"B.Mask\" user)\n")
-        kpcb.write("    (39 \"F.Mask\" user)\n")
-        kpcb.write("    (40 \"Dwgs.User\" user \"User.Drawings\")\n")
-        kpcb.write("    (41 \"Cmts.User\" user \"User.Comments\")\n")
-        kpcb.write("    (42 \"Eco1.User\" user \"User.Eco1\")\n")
-        kpcb.write("    (43 \"Eco2.User\" user \"User.Eco2\")\n")
-        kpcb.write("    (44 \"Edge.Cuts\" user)\n")
-        kpcb.write("    (45 \"Margin\" user)\n")
-        kpcb.write("    (46 \"B.CrtYd\" user \"B.Courtyard\")\n")
-        kpcb.write("    (47 \"F.CrtYd\" user \"F.Courtyard\")\n")
-        kpcb.write("    (48 \"B.Fab\" user)\n")
-        kpcb.write("    (49 \"F.Fab\" user)\n")
-        kpcb.write("  )\n")
-        kpcb.write("\n")
+            kpcb.write(f'    ({layer["kicad_num"]} \"{layer["kicad"]}\" {layer["type"]})\n')
+        kpcb.write('    (32 "B.Adhes" user "B.Adhesive")\n')
+        kpcb.write('    (33 "F.Adhes" user "F.Adhesive")\n')
+        kpcb.write('    (34 "B.Paste" user)\n')
+        kpcb.write('    (35 "F.Paste" user)\n')
+        kpcb.write('    (36 "B.SilkS" user "B.Silkscreen")\n')
+        kpcb.write('    (37 "F.SilkS" user "F.Silkscreen")\n')
+        kpcb.write('    (38 "B.Mask" user)\n')
+        kpcb.write('    (39 "F.Mask" user)\n')
+        kpcb.write('    (40 "Dwgs.User" user "User.Drawings")\n')
+        kpcb.write('    (41 "Cmts.User" user "User.Comments")\n')
+        kpcb.write('    (42 "Eco1.User" user "User.Eco1")\n')
+        kpcb.write('    (43 "Eco2.User" user "User.Eco2")\n')
+        kpcb.write('    (44 "Edge.Cuts" user)\n')
+        kpcb.write('    (45 "Margin" user)\n')
+        kpcb.write('    (46 "B.CrtYd" user "B.Courtyard")\n')
+        kpcb.write('    (47 "F.CrtYd" user "F.Courtyard")\n')
+        kpcb.write('    (48 "B.Fab" user)\n')
+        kpcb.write('    (49 "F.Fab" user)\n')
+        kpcb.write('  )\n')
+        kpcb.write('\n')
 
         # ---------- Setup ----------
         kpcb.write("  (setup\n")
@@ -1534,12 +1533,11 @@ class Board:
 
             uu = uuid.uuid4()
             l = self.layers.translate(fp["layer"])[0]["layer"]
-            kpcb.write(f"  (footprint \"{self.filename}_export_pcb:{fp['libref']}\" (layer \"{l}\")\n")
-            kpcb.write(f"    (tedit 58FDD7FE) (tstamp {uu})\n")
+            kpcb.write(f'  (footprint "{self.filename}_export_pcb:{fp["libref"]}" (layer "{l}")\n')
             compx, compy = self.to_point(fp["X"], fp["Y"])
             comprotation = float(fp["rotation"])
-            kpcb.write(f"    (at {compx:.3f} {compy:.3f} {comprotation:.3f})\n")
-            kpcb.write( "    (attr smd board_only)\n")
+            kpcb.write(f'    (at {compx:.3f} {compy:.3f} {comprotation:.3f})\n')
+            kpcb.write( '    (attr smd board_only)\n')
 
             for prim in fp["prims"]:
                 if prim["RECORD"] == "Arc":
@@ -1556,12 +1554,8 @@ class Board:
                     klayer = self.layers.translate(prim["LAYER"])[0]['layer']
 
                     if start_angle == end_angle:
-                        kpcb.write( "    (fp_circle\n")
-                        kpcb.write(f"      (center {cx:.3f} {cy:.3f})\n")
-                        kpcb.write(f"      (end {endx:.4f} {endy:.4f})\n")
-                        kpcb.write(f"      (layer {klayer})\n")
-                        kpcb.write(f"      (width {width})\n")
-                        kpcb.write( "    )\n")
+                        kpcb.write(f'    (fp_circle (center {cx:.3f} {cy:.3f}) (end {endx:.4f} {endy:.4f})\n')
+                        kpcb.write(f'      (stroke (width {width}) (type solid)) (fill none) (layer {klayer}))\n')
                     else:
                         alpha1 = self.to_kicad_angle(start_angle)
                         alpha3 = self.to_kicad_angle(end_angle)
@@ -1573,14 +1567,9 @@ class Board:
                         x3 = cx + r * math.sin(alpha3 / 57.29578)
                         y3 = cy - r * math.cos(alpha3 / 57.29578)
 
-                        kpcb.write( "    (fp_arc\n")
-                        kpcb.write(f"      (start {x1:.3f} {y1:.3f})\n")
-                        kpcb.write(f"      (mid {x2:.3f} {y2:.3f})\n")
-                        kpcb.write(f"      (end {x3:.3f} {y3:.3f})\n")
-                        kpcb.write(f"      (layer {klayer})\n")
-                        kpcb.write(f"      (width {width})\n")
-                        kpcb.write( "    )\n")
-    
+                        kpcb.write(f'    (fp_arc (start {x1:.3f} {y1:.3f}) (mid {x2:.3f} {y2:.3f}) (end {x3:.3f} {y3:.3f})\n')
+                        kpcb.write(f'      (stroke (width {width}) (type solid)) (layer {klayer}))\n')
+
                         if klayer == 'Edge.Cuts':
                             bx1 = min(x1 + compx, x2 + compx, x3 + compx, bx1)
                             by1 = min(y1 + compy, y2 + compy, y3 + compy, by1)
@@ -1628,12 +1617,12 @@ class Board:
                             tlayer = "B.Fab"
                             mirror = " mirror"
     
-                        s_pos = f"(at {x:.3f} {y:.3f} {trot}) (layer \"{tlayer}\")"
-                        s_font = f"(font (size {height:.3f} {height:.3f}) (thickness {thick:.3f}))"
+                        s_pos = f'(at {x:.3f} {y:.3f} {trot}) (layer "{tlayer}")'
+                        s_font = f'(font (size {height:.3f} {height:.3f}) (thickness {thick:.3f}))'
                         kpcb.write(
-                            f"    (fp_text value \"{comment}\" {s_pos}\n"
-                            f"      (effects {s_font} (justify left{mirror}))\n"
-                             "    )\n"
+                            f'    (fp_text value "{comment}" {s_pos}\n'
+                            f'      (effects {s_font} (justify left{mirror}))\n'
+                             '    )\n'
                              )
     
                 if prim["RECORD"] == "Track":
@@ -1647,16 +1636,13 @@ class Board:
                     y2 -= compy
                     width = self.to_mm(prim["WIDTH"])
 
-                    s_start = f"(start {x1:.3f} {y1:.3f})"
-                    s_end = f"(end {x2:.3f} {y2:.3f})"
                     ldef = self.layers.translate(prim["LAYER"])
                     layer = ldef[0]["layer"]
                     if (l == "B.Cu") and (len(ldef) >= 2):
                         layer = ldef[1]["layer"]
-                    s_layer = f"(layer {layer})"
-                    s_width = f"(width {width:.3f})"
-                    kpcb.write(f"    (fp_line {s_start} {s_end} {s_layer} {s_width})\n")
-    
+                    kpcb.write(f'    (fp_line (start {x1:.3f} {y1:.3f}) (end {x2:.3f} {y2:.3f})\n')
+                    kpcb.write(f'      (stroke (width {width:.3f}) (type solid)) (layer {layer}))\n')
+
                     if layer == 'Edge.Cuts':
                         bx1 = min(x1 + compx, x2 + compx, bx1)
                         by1 = min(y1 + compy, y2 + compy, by1)
@@ -1680,12 +1666,9 @@ class Board:
                     for klayer in klayers:
                         layer = klayer["layer"]
                         kpcb.write(
-                            f"    (fp_rect\n"
-                            f"      (start {x1:.3f} {y1:.3f}) (end {x2:.3f} {y2:.3f})\n"
-                            f"      (layer \"{layer}\")\n"
-                             "      (stroke (width 0.01) (type solid) (color 0 0 0 0))\n"
-                             "      (fill solid)\n"
-                             "    )\n"
+                            f'    (fp_rect (start {x1:.3f} {y1:.3f}) (end {x2:.3f} {y2:.3f})\n'
+                             '      (stroke (width 0.01) (type solid)) (fill solid)'
+                            f' (layer "{layer}"))\n'
                              )
 
             for prim in fp["prims"]:
@@ -1752,6 +1735,7 @@ class Board:
             kpcb.write("\n")
 
         # ---------- Graphics ----------
+
         for prim in self.freegraphics:
             klayers = self.layers.translate(prim["LAYER"])
     
@@ -1763,9 +1747,8 @@ class Board:
                         x2, y2 = self.to_point(prim["X2"], prim["Y2"])
                         width = self.to_mm(prim["WIDTH"])
                         kpcb.write(
-                            f"  (gr_line"
-                            f" (start {x1:.3f} {y1:.3f}) (end {x2:.3f} {y2:.3f})"
-                            f" (layer {layer}) (width {width:.3f}))\n"
+                            f'  (gr_line (start {x1:.3f} {y1:.3f}) (end {x2:.3f} {y2:.3f})\n'
+                            f'    (stroke (width {width:.3f}) (type solid)) (layer {layer}))\n'
                             )
 
                     if layer == 'Edge.Cuts':
@@ -1795,11 +1778,8 @@ class Board:
                     y3 = cy - r * math.cos(alpha3 / 57.29578)
 
                     kpcb.write(
-                        f"  (gr_arc"
-                        f" (start {x1:.3f} {y1:.3f})"
-                        f" (mid {x2:.3f} {y2:.3f})"
-                        f" (end {x3:.3f} {y3:.3f})"
-                        f" (layer {layer}) (width {width:3f}))\n"
+                        f'  (gr_arc (start {x1:.3f} {y1:.3f}) (mid {x2:.3f} {y2:.3f}) (end {x3:.3f} {y3:.3f})\n'
+                        f'    (stroke (width {width:3f}) (type solid)) (layer {layer}))\n'
                         )
 
                     if layer == 'Edge.Cuts':
@@ -1820,16 +1800,10 @@ class Board:
                     if "ROTATION" in prim:
                         rotation = prim["ROTATION"]
                     kpcb.write(
-                        f"  (gr_text \"{text}\" (at {x:.3f} {y:.3f} {rotation})\n"
-                        f"    (layer \"{layer}\")\n"
-                        f"    (effects\n"
-                         "      (font\n"
-                        f"        (size {height:.2f} {height:.2f})\n"
-                        f"        (thickness {thick:.3f})\n"
-                         "      )\n"
-                        f"      (justify left bottom {mirror})\n"
-                         "    )\n"
-                         "  )\n"
+                        f'  (gr_text "{text}" (at {x:.3f} {y:.3f} {rotation}) (layer "{layer}")\n'
+                        f'    (effects (font (size {height:.2f} {height:.2f}) (thickness {thick:.3f}))'
+                            f' (justify left bottom {mirror}))\n'
+                         '  )\n'
                          )
     
             if prim["RECORD"] == "Fill":
@@ -1857,20 +1831,11 @@ class Board:
                     unit_style = prim["UNITSTYLE"]
 
                     kpcb.write(
-                         "  (dimension\n"
-                         "    (type aligned)\n"
-                        f"    (layer \"{layer}\")\n"
-                        f"    (pts (xy {x1:.3f} {y1:.3f}) (xy {x2:.3f} {y2:.3f}))\n"
-                         "    (format\n"
-                         "      (units 2)\n"
-                        f"      (units_format {unit_style})\n"
-                         "      (precision 7)\n"
-                         "    )\n"
-                         "    (style\n"
-                        f"      (thickness {line_width:.3f})\n"
-                         "      (text_position_mode 1)\n"
-                         "    )\n"
-                         "  )\n"
+                        f'  (dimension (type aligned) (layer "{layer}")\n'
+                        f'    (pts (xy {x1:.3f} {y1:.3f}) (xy {x2:.3f} {y2:.3f}))\n'
+                        f'    (format (units 2) (units_format {unit_style}) (precision 7))\n'
+                        f'    (style (thickness {line_width:.3f}) (text_position_mode 1))\n'
+                         '  )\n'
                          )
     
         kpcb.write("\n")
@@ -1926,12 +1891,10 @@ class Board:
                     netno = 1 + int(prim["NET"])
                     if netno >= 1:
                         kpcb.write(
-                            f"  (arc"
-                            f" (start {x1:.3f} {y1:.3f})"
-                            f" (mid {x2:.3f} {y2:.3f})"
-                            f" (end {x3:.3f} {y3:.3f})"
-                            f" (net {netno})"
-                            f" (layer {layer}) (width {width:3f}))\n"
+                            f'  (arc (start {x1:.3f} {y1:.3f})'
+                            f' (mid {x2:.3f} {y2:.3f}) (end {x3:.3f} {y3:.3f})\n'
+                            f' (net {netno})'
+                            f' (layer {layer}) (width {width:3f}))\n'
                             )
         kpcb.write("\n")
     
@@ -1961,30 +1924,26 @@ class Board:
                 if prim["LAYER"] == "BottomLayer":  # TODO
                     polylayer = "B.Cu"
     
-                kpcb.write("  (zone (net {:d}) (net_name {:s}) (layer {:s}) (hatch edge 0.508)\n"
-                           .format(netid+1, netprim["NAME"], polylayer))
-                kpcb.write("    (connect_pads (clearance 0.2))\n")
-                kpcb.write("    (min_thickness 0.1778)\n")
-                kpcb.write("    (fill yes (arc_segments 16) (thermal_gap 0.254) (thermal_bridge_width 0.4064))\n")
-                kpcb.write("    (polygon\n")
-                kpcb.write("      (pts\n")
-                kpcb.write("       ")
+                kpcb.write(f'  (zone (net {netid+1}) (net_name {netprim["NAME"]}) (layer {polylayer}) (hatch edge 0.508)\n')
+                kpcb.write( '    (connect_pads (clearance 0.2))\n')
+                kpcb.write( '    (min_thickness 0.1778)\n')
+                kpcb.write( '    (fill yes (arc_segments 16) (thermal_gap 0.254) (thermal_bridge_width 0.4064))\n')
+                kpcb.write( '    (polygon\n')
+                kpcb.write( '      (pts\n')
                 i = 0
                 while True:
                     # Key for vertex i
-                    keyx = "VX{:d}".format(i)
-                    keyy = "VY{:d}".format(i)
+                    keyx = f'VX{i}'
+                    keyy = f'VY{i}'
                     if (keyx in prim) and (keyy in prim):
                         x, y = self.to_point(prim[keyx], prim[keyy])
-                        kpcb.write(f" (xy {x:.3f} {y:.3f})")
+                        kpcb.write(f'        (xy {x:.3f} {y:.3f})')
                     else:
                         break
                     i += 1
-                kpcb.write("\n")
-                kpcb.write("      )\n")
-                kpcb.write("    )\n")
-                kpcb.write("  )\n")
-                kpcb.write("\n")
+                kpcb.write( '      )\n')
+                kpcb.write( '    )\n')
+                kpcb.write( '  )\n')
 
         # Add filled zones on power planes.
         # Board boundary must be known
