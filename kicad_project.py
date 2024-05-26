@@ -41,8 +41,12 @@ class KicadProject:
                 self.default["via_diameter"] = self.to_mm(prule["MINWIDTH"])
                 self.default["via_drill"] = self.to_mm(prule["MINHOLEWIDTH"])
             if prule["RULEKIND"] == "MinimumAnnularRing":
-                self.rules["min_via_annular_width"] = self.to_mm(prule["MINIMUMRING"])
-                self.rule_log += f'  Minimum annular width = {self.rules["min_via_annular_width"]}\n'
+                w = prule.get("MINIMUMRING", None)
+                if w is None:
+                    w = prule.get("MINIMUM", None)
+                if w is not None:
+                    self.rules["min_via_annular_width"] = w
+                    self.rule_log += f'  Minimum annular width = {self.rules["min_via_annular_width"]}\n'
             if prule["RULEKIND"] == "SolderMaskExpansion":
                 self.rules["solder_mask_clearance"] = self.to_mm(prule["EXPANSION"])
                 self.rule_log += f'  Solder mask expansion = {self.rules["solder_mask_clearance"]}\n'
