@@ -76,6 +76,12 @@ There are quite a few...   The list below is definitely incomplete!
 
 NOTE: If the tool crashes during conversion, or in case the conversion result is not what you expect, please let me know. In such a case send me the files you are trying to convert along with a description of the error.
 
+# New in V2 (2024-05-26)
+
+  * Fix broken 'arc' handling. It worked by pure chance with some (but not all) versions of Kicad7. Also failed on Kicad8. Should now be fixed.
+  * Support for power planes. Works if the Kicad output has a board boundary on the Edge.Cuts layer. Also supports split power planes, although design rule parameters (gap between planes, etc) must be fixed manually. "Negative" drawing elements (lines or fills to spare out copper in power planes) not yet supported, although these elements exist in the ouput and can be manually adjusted.
+  * Try converting the 6-layer "PCB Benchmark 94 Board" from the Protel99SE examples folder. (ok, still some minor issues, but getting closer...)
+
 # Example
 The board shown here has been converted almost automatically. Only the oval holes required manual rework of the footprints in KiCad.
 
