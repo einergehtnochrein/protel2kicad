@@ -1698,7 +1698,7 @@ class Board:
                         xsize = self.to_mm(prim["XSIZE"])
                         ysize = self.to_mm(prim["YSIZE"])
                     else:
-                        print(f"Unsupported pad stack in {compname} @({x:.3f},{y:.3f})")
+                        #print(f"Unsupported pad stack in {compname} @({x:.3f},{y:.3f})")
                         xsize = self.to_mm(prim["TOPXSIZE"])
                         ysize = self.to_mm(prim["TOPYSIZE"])
                     padrotation = float(prim["ROTATION"])
