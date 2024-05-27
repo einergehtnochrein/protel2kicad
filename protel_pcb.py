@@ -918,7 +918,6 @@ class Board:
                                 fp["prims"].append(arc)
                                 pcb.fps[index] = fp
                             else:
-                                pass
                                 pcb.freegraphics.append(arc)
 
             if section_name == "Pads":
