@@ -1678,6 +1678,18 @@ class Board:
                         n, fp = self.find_fp(prim["COMPONENT"])
                         compname = fp["libref"]
 
+                    # Detect Protel style fiducial.
+                    # There seems to be this convention: A pad in the KeepOutLayer defines
+                    # the solder mask opening, and the drill diameter value defines the
+                    # SMD pad size in the middle.
+                    if prim["LAYER"] == "KeepOutLayer":
+                        prim["LAYER"] = "TopLayer" if l == "F.Cu" else "BottomLayer"
+                        prim["SOLDERMASK_OVERRIDE"] = prim["XSIZE"] / 2
+                        prim["XSIZE"] = prim["HOLESIZE"]
+                        prim["YSIZE"] = prim["HOLESIZE"]
+                        prim["HOLESIZE"] = 0
+                        prim["SHAPE"] = "ROUND"
+
                     x, y = self.to_point(prim["X"], prim["Y"])
                     x, y = pointrotate(compx, compy, x, y, comprotation)
                     x -= compx
@@ -1726,10 +1738,11 @@ class Board:
     
                     if "NET" in prim:
                         netid = int(prim["NET"]) + 1
-                        kpcb.write("\n      (net {:d} \"{:s}\"))\n"
-                            .format(netid, self.nets[netid]["NAME"]))
-                    else:
-                        kpcb.write(")\n")
+                        kpcb.write(f'\n      (net {netid} \"{self.nets[netid]["NAME"]}\")')
+                    soldermask_override = self.to_mm(prim.get("SOLDERMASK_OVERRIDE", 0))
+                    if soldermask_override > 0:
+                        kpcb.write(f'\n      (solder_mask_margin {soldermask_override})')
+                    kpcb.write(')\n')
 
             kpcb.write("  )\n")
             kpcb.write("\n")
