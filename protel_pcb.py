@@ -1365,7 +1365,7 @@ class Board:
                     '''
                     for i in range(num_elements):
                         filldef = ppcb.read(section_element_size)
-                        print(" ".join(f"{x:02X}" for x in filldef))
+                        #print(" ".join(f"{x:02X}" for x in filldef))
                         fill = {"RECORD":"Fill"}
                         '''
                         fill["X1"] = struct.unpack('<i', filldef[19:23])[0] / 1e4
