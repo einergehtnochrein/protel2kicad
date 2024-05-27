@@ -1779,20 +1779,27 @@ class Board:
 
                     start_angle = float(prim["ENDANGLE"]) % 360
                     end_angle = float(prim["STARTANGLE"]) % 360
-                    alpha1 = self.to_kicad_angle(start_angle)
-                    alpha3 = self.to_kicad_angle(end_angle)
-                    alpha2 = alpha1 + ((360 + alpha3 - alpha1) % 360) / 2
-                    x1 = cx + r * math.sin(alpha1 / 57.29578)
-                    y1 = cy - r * math.cos(alpha1 / 57.29578)
-                    x2 = cx + r * math.sin(alpha2 / 57.29578)
-                    y2 = cy - r * math.cos(alpha2 / 57.29578)
-                    x3 = cx + r * math.sin(alpha3 / 57.29578)
-                    y3 = cy - r * math.cos(alpha3 / 57.29578)
 
-                    kpcb.write(
-                        f'  (gr_arc (start {x1:.3f} {y1:.3f}) (mid {x2:.3f} {y2:.3f}) (end {x3:.3f} {y3:.3f})\n'
-                        f'    (stroke (width {width:3f}) (type solid)) (layer {layer}))\n'
-                        )
+                    if start_angle == end_angle:
+                        endx = cx + r
+                        endy = cy
+                        kpcb.write(f'    (gr_circle (center {cx:.3f} {cy:.3f}) (end {endx:.4f} {endy:.4f})\n')
+                        kpcb.write(f'      (stroke (width {width}) (type solid)) (fill none) (layer {layer}))\n')
+                    else:
+                        alpha1 = self.to_kicad_angle(start_angle)
+                        alpha3 = self.to_kicad_angle(end_angle)
+                        alpha2 = alpha1 + ((360 + alpha3 - alpha1) % 360) / 2
+                        x1 = cx + r * math.sin(alpha1 / 57.29578)
+                        y1 = cy - r * math.cos(alpha1 / 57.29578)
+                        x2 = cx + r * math.sin(alpha2 / 57.29578)
+                        y2 = cy - r * math.cos(alpha2 / 57.29578)
+                        x3 = cx + r * math.sin(alpha3 / 57.29578)
+                        y3 = cy - r * math.cos(alpha3 / 57.29578)
+
+                        kpcb.write(
+                            f'  (gr_arc (start {x1:.3f} {y1:.3f}) (mid {x2:.3f} {y2:.3f}) (end {x3:.3f} {y3:.3f})\n'
+                            f'    (stroke (width {width:3f}) (type solid)) (layer {layer}))\n'
+                            )
 
                     if layer == 'Edge.Cuts':
                         bx1 = min(x1, x2, x3, bx1)
