@@ -918,7 +918,6 @@ class Board:
                                 fp["prims"].append(arc)
                                 pcb.fps[index] = fp
                             else:
-                                pass
                                 pcb.freegraphics.append(arc)
 
             if section_name == "Pads":
@@ -1365,7 +1364,7 @@ class Board:
                     '''
                     for i in range(num_elements):
                         filldef = ppcb.read(section_element_size)
-                        print(" ".join(f"{x:02X}" for x in filldef))
+                        #print(" ".join(f"{x:02X}" for x in filldef))
                         fill = {"RECORD":"Fill"}
                         '''
                         fill["X1"] = struct.unpack('<i', filldef[19:23])[0] / 1e4
@@ -1678,6 +1677,18 @@ class Board:
                         n, fp = self.find_fp(prim["COMPONENT"])
                         compname = fp["libref"]
 
+                    # Detect Protel style fiducial.
+                    # There seems to be this convention: A pad in the KeepOutLayer defines
+                    # the solder mask opening, and the drill diameter value defines the
+                    # SMD pad size in the middle.
+                    if prim["LAYER"] == "KeepOutLayer":
+                        prim["LAYER"] = "TopLayer" if l == "F.Cu" else "BottomLayer"
+                        prim["SOLDERMASK_OVERRIDE"] = prim["XSIZE"] / 2
+                        prim["XSIZE"] = prim["HOLESIZE"]
+                        prim["YSIZE"] = prim["HOLESIZE"]
+                        prim["HOLESIZE"] = 0
+                        prim["SHAPE"] = "ROUND"
+
                     x, y = self.to_point(prim["X"], prim["Y"])
                     x, y = pointrotate(compx, compy, x, y, comprotation)
                     x -= compx
@@ -1686,7 +1697,7 @@ class Board:
                         xsize = self.to_mm(prim["XSIZE"])
                         ysize = self.to_mm(prim["YSIZE"])
                     else:
-                        print(f"Unsupported pad stack in {compname} @({x:.3f},{y:.3f})")
+                        #print(f"Unsupported pad stack in {compname} @({x:.3f},{y:.3f})")
                         xsize = self.to_mm(prim["TOPXSIZE"])
                         ysize = self.to_mm(prim["TOPYSIZE"])
                     padrotation = float(prim["ROTATION"])
@@ -1726,10 +1737,11 @@ class Board:
     
                     if "NET" in prim:
                         netid = int(prim["NET"]) + 1
-                        kpcb.write("\n      (net {:d} \"{:s}\"))\n"
-                            .format(netid, self.nets[netid]["NAME"]))
-                    else:
-                        kpcb.write(")\n")
+                        kpcb.write(f'\n      (net {netid} \"{self.nets[netid]["NAME"]}\")')
+                    soldermask_override = self.to_mm(prim.get("SOLDERMASK_OVERRIDE", 0))
+                    if soldermask_override > 0:
+                        kpcb.write(f'\n      (solder_mask_margin {soldermask_override})')
+                    kpcb.write(')\n')
 
             kpcb.write("  )\n")
             kpcb.write("\n")
@@ -1767,20 +1779,27 @@ class Board:
 
                     start_angle = float(prim["ENDANGLE"]) % 360
                     end_angle = float(prim["STARTANGLE"]) % 360
-                    alpha1 = self.to_kicad_angle(start_angle)
-                    alpha3 = self.to_kicad_angle(end_angle)
-                    alpha2 = alpha1 + ((360 + alpha3 - alpha1) % 360) / 2
-                    x1 = cx + r * math.sin(alpha1 / 57.29578)
-                    y1 = cy - r * math.cos(alpha1 / 57.29578)
-                    x2 = cx + r * math.sin(alpha2 / 57.29578)
-                    y2 = cy - r * math.cos(alpha2 / 57.29578)
-                    x3 = cx + r * math.sin(alpha3 / 57.29578)
-                    y3 = cy - r * math.cos(alpha3 / 57.29578)
 
-                    kpcb.write(
-                        f'  (gr_arc (start {x1:.3f} {y1:.3f}) (mid {x2:.3f} {y2:.3f}) (end {x3:.3f} {y3:.3f})\n'
-                        f'    (stroke (width {width:3f}) (type solid)) (layer {layer}))\n'
-                        )
+                    if start_angle == end_angle:
+                        endx = cx + r
+                        endy = cy
+                        kpcb.write(f'    (gr_circle (center {cx:.3f} {cy:.3f}) (end {endx:.4f} {endy:.4f})\n')
+                        kpcb.write(f'      (stroke (width {width}) (type solid)) (fill none) (layer {layer}))\n')
+                    else:
+                        alpha1 = self.to_kicad_angle(start_angle)
+                        alpha3 = self.to_kicad_angle(end_angle)
+                        alpha2 = alpha1 + ((360 + alpha3 - alpha1) % 360) / 2
+                        x1 = cx + r * math.sin(alpha1 / 57.29578)
+                        y1 = cy - r * math.cos(alpha1 / 57.29578)
+                        x2 = cx + r * math.sin(alpha2 / 57.29578)
+                        y2 = cy - r * math.cos(alpha2 / 57.29578)
+                        x3 = cx + r * math.sin(alpha3 / 57.29578)
+                        y3 = cy - r * math.cos(alpha3 / 57.29578)
+
+                        kpcb.write(
+                            f'  (gr_arc (start {x1:.3f} {y1:.3f}) (mid {x2:.3f} {y2:.3f}) (end {x3:.3f} {y3:.3f})\n'
+                            f'    (stroke (width {width:3f}) (type solid)) (layer {layer}))\n'
+                            )
 
                     if layer == 'Edge.Cuts':
                         bx1 = min(x1, x2, x3, bx1)
