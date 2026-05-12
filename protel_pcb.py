@@ -1915,24 +1915,41 @@ class Board:
 
                     start_angle = prim["ENDANGLE"] % 360
                     end_angle = prim["STARTANGLE"] % 360
-                    alpha1 = self.to_kicad_angle(start_angle)
-                    alpha3 = self.to_kicad_angle(end_angle)
-                    alpha2 = alpha1 + ((360 + alpha3 - alpha1) % 360) / 2
-                    x1 = cx + r * math.sin(alpha1 / 57.29578)
-                    y1 = cy - r * math.cos(alpha1 / 57.29578)
-                    x2 = cx + r * math.sin(alpha2 / 57.29578)
-                    y2 = cy - r * math.cos(alpha2 / 57.29578)
-                    x3 = cx + r * math.sin(alpha3 / 57.29578)
-                    y3 = cy - r * math.cos(alpha3 / 57.29578)
-
                     netno = 1 + int(prim["NET"])
-                    if netno >= 1:
-                        kpcb.write(
-                            f'  (arc (start {x1:.3f} {y1:.3f})'
-                            f' (mid {x2:.3f} {y2:.3f}) (end {x3:.3f} {y3:.3f})\n'
-                            f' (net {netno})'
-                            f' (layer {layer}) (width {width:3f}))\n'
-                            )
+
+                    if start_angle == end_angle:
+                        # Full circle — KiCad has no netted circle, split into two 180° arcs.
+                        if netno >= 1:
+                            kpcb.write(
+                                f'  (arc (start {cx + r:.3f} {cy:.3f})'
+                                f' (mid {cx:.3f} {cy - r:.3f}) (end {cx - r:.3f} {cy:.3f})\n'
+                                f' (net {netno})'
+                                f' (layer {layer}) (width {width:3f}))\n'
+                                )
+                            kpcb.write(
+                                f'  (arc (start {cx - r:.3f} {cy:.3f})'
+                                f' (mid {cx:.3f} {cy + r:.3f}) (end {cx + r:.3f} {cy:.3f})\n'
+                                f' (net {netno})'
+                                f' (layer {layer}) (width {width:3f}))\n'
+                                )
+                    else:
+                        alpha1 = self.to_kicad_angle(start_angle)
+                        alpha3 = self.to_kicad_angle(end_angle)
+                        alpha2 = alpha1 + ((360 + alpha3 - alpha1) % 360) / 2
+                        x1 = cx + r * math.sin(alpha1 / 57.29578)
+                        y1 = cy - r * math.cos(alpha1 / 57.29578)
+                        x2 = cx + r * math.sin(alpha2 / 57.29578)
+                        y2 = cy - r * math.cos(alpha2 / 57.29578)
+                        x3 = cx + r * math.sin(alpha3 / 57.29578)
+                        y3 = cy - r * math.cos(alpha3 / 57.29578)
+
+                        if netno >= 1:
+                            kpcb.write(
+                                f'  (arc (start {x1:.3f} {y1:.3f})'
+                                f' (mid {x2:.3f} {y2:.3f}) (end {x3:.3f} {y3:.3f})\n'
+                                f' (net {netno})'
+                                f' (layer {layer}) (width {width:3f}))\n'
+                                )
         kpcb.write("\n")
     
         # Vias
