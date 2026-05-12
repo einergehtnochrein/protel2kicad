@@ -994,8 +994,11 @@ class Board:
                             index, fp = pcb.find_fp(compno)
                             fp["prims"].append(pad)
                             pcb.fps[index] = fp
+                        elif pad["HOLESIZE"] == 0:
+                            # SMD free pad — emit as a standalone single-pad footprint.
+                            pcb.freepads.append(pad)
                         else:
-                            # Convert free pads to vias
+                            # Through-hole free pad — convert to via.
                             via = {}
                             if netno != -1:
                                 via["NET"] = netno
@@ -1085,8 +1088,11 @@ class Board:
                             index, fp = pcb.find_fp(compno)
                             fp["prims"].append(pad)
                             pcb.fps[index] = fp
+                        elif pad["HOLESIZE"] == 0:
+                            # SMD free pad — emit as a standalone single-pad footprint.
+                            pcb.freepads.append(pad)
                         else:
-                            # Convert free pads to vias
+                            # Through-hole free pad — convert to via.
                             via = {}
                             if netno != -1:
                                 via["NET"] = netno
@@ -1745,6 +1751,41 @@ class Board:
 
             kpcb.write("  )\n")
             kpcb.write("\n")
+
+        # Free SMD pads — emit each as a standalone single-pad footprint so
+        # they appear as exposed copper rather than vias shorting through to
+        # whatever is on the opposite copper layer.
+        for pad in self.freepads:
+            uu = uuid.uuid4()
+            ldef = self.layers.translate(pad["LAYER"])
+            l = ldef[0]["layer"]
+            if l == "B.Cu":
+                padlayers = '"B.Cu" "B.Paste" "B.Mask"'
+            else:
+                padlayers = '"F.Cu" "F.Paste" "F.Mask"'
+            x, y = self.to_point(pad["X"], pad["Y"])
+            xsize = self.to_mm(pad.get("XSIZE", pad.get("TOPXSIZE", 0)))
+            ysize = self.to_mm(pad.get("YSIZE", pad.get("TOPYSIZE", 0)))
+            padrotation = float(pad.get("ROTATION", 0))
+            shape = pad.get("SHAPE", "RECTANGLE")
+            if shape == "ROUND":
+                padshape = "circle" if xsize == ysize else "oval"
+            else:
+                padshape = "rect"
+
+            kpcb.write(f'  (footprint "freepad" (layer "{l}")\n')
+            kpcb.write(f'    (at {x:.3f} {y:.3f} {padrotation:.3f})\n')
+            kpcb.write( '    (attr smd board_only exclude_from_pos_files exclude_from_bom)\n')
+            kpcb.write(
+                f'    (pad "{pad["NAME"]}" smd {padshape} (at 0 0 {padrotation:.3f})'
+                f' (size {xsize:.3f} {ysize:.3f}) (layers {padlayers})'
+                )
+            if "NET" in pad:
+                netid = int(pad["NET"]) + 1
+                netname = self.nets[netid]["NAME"]
+                kpcb.write(f'\n      (net {netid} "{netname}")')
+            kpcb.write(')\n')
+            kpcb.write('  )\n\n')
 
         # ---------- Graphics ----------
 
