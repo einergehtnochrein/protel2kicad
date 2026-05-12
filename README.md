@@ -88,6 +88,13 @@ NOTE: If the tool crashes during conversion, or in case the conversion result is
   * Fix: All free graphics arcs were unintentionally disabled.
   * Translate weird fiducial components (pad in KeepOutLayer)
 
+# New in V4 (2026-05-12)
+
+  * Fix: Full circle board edge (PR #1)
+  * Fix: Split full circle arc (PR #2)
+  * Fix: Convert free SMD pads to footpints (PR #3)
+  * Fix: PCB layer stack with no dielectric type assigned
+
 # Example
 The board shown here has been converted almost automatically. Only the oval holes required manual rework of the footprints in KiCad.
 
