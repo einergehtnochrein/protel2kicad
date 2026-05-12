@@ -144,6 +144,10 @@ class Layers:
                 diel_mat = board.get(f"LAYER{n}DIELMATERIAL", None)
                 layer["diel_mat"] = "FR4" if diel_mat is None else diel_mat
 
+                # TODO: If diel_type of first layer is 0, set diel_type=1.
+                if (n == 1) and (layer["diel_type"] == 0) and (layer["next"] != 0):
+                    layer["diel_type"] = 1
+
                 self.d.append(layer)
                 n = n + 1
             else:
