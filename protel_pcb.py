@@ -1785,6 +1785,12 @@ class Board:
                         endy = cy
                         kpcb.write(f'    (gr_circle (center {cx:.3f} {cy:.3f}) (end {endx:.4f} {endy:.4f})\n')
                         kpcb.write(f'      (stroke (width {width}) (type solid)) (fill none) (layer {layer}))\n')
+
+                        if layer == 'Edge.Cuts':
+                            bx1 = min(cx - r, bx1)
+                            by1 = min(cy - r, by1)
+                            bx2 = max(cx + r, bx2)
+                            by2 = max(cy + r, by2)
                     else:
                         alpha1 = self.to_kicad_angle(start_angle)
                         alpha3 = self.to_kicad_angle(end_angle)
@@ -1801,11 +1807,11 @@ class Board:
                             f'    (stroke (width {width:3f}) (type solid)) (layer {layer}))\n'
                             )
 
-                    if layer == 'Edge.Cuts':
-                        bx1 = min(x1, x2, x3, bx1)
-                        by1 = min(y1, y2, y3, by1)
-                        bx2 = max(x1, x2, x3, bx2)
-                        by2 = max(y1, y2, y3, by2)
+                        if layer == 'Edge.Cuts':
+                            bx1 = min(x1, x2, x3, bx1)
+                            by1 = min(y1, y2, y3, by1)
+                            bx2 = max(x1, x2, x3, bx2)
+                            by2 = max(y1, y2, y3, by2)
 
             if prim["RECORD"] == "Text":
                 for klayer in klayers:
