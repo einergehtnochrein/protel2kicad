@@ -1,7 +1,8 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import argparse
 import base64
+import configparser
 import json
 from kicad_project import KicadProject
 import os
@@ -114,39 +115,48 @@ if __name__ == "__main__":
 
         if fileext.upper() == '.DDB':
             print("processing", name_infile)
+            if open(name_infile).readline().strip() == '[Design Root]':
+                # Text DDB file
+                cp = configparser.ConfigParser()
+                cp.read(name_infile)
+                for name, typ in cp['Directory'].items():
+                    if typ in ['Sch', 'PCB', 'SchLib', 'PCBLib']:
+                        args.protelfiles.append(name)
 
-            # Check database file and extract schematic/PCB/library
-            # All database documents are listed as entries in the 'Items' table.
-            db_dir = os.path.join('db', filename)
-            try:
-                os.makedirs(db_dir)
-            except FileExistsError:
-                pass
-            result = subprocess.run(["mdb-json", name_infile, "Items"],
-                                    stdout=subprocess.PIPE)
-            # Put all JSON formatted table lines in a list
-            docs = result.stdout.decode("utf-8").splitlines()
+            else:
+                # Access DB
+                # Check database file and extract schematic/PCB/library
+                # All database documents are listed as entries in the 'Items' table.
+                db_dir = os.path.join('db', filename)
+                try:
+                    os.makedirs(db_dir)
+                except FileExistsError:
+                    pass
+                result = subprocess.run(["mdb-json", name_infile, "Items"],
+                                        stdout=subprocess.PIPE)
+                # Put all JSON formatted table lines in a list
+                docs = result.stdout.decode("utf-8").splitlines()
 
-            # TODO: Extract all files in the database
-            # Extract all sch/pcb/lib and add to the list.
-            # Those files have their content stored as base64 encoded binary
-            # data in "Data/$binary"
-            for d in docs:
-                j = json.loads(d)
-                name, ext = os.path.splitext(j["Name"])
-                # Design files
-                if (ext.upper() == '.SCH') or (ext.upper() == '.PCB') or (ext.upper() == '.LIB') or (ext.upper() == '.PRJ'):
-                    with open(os.path.join(db_dir, j["Name"]), "wb+") as f:
-                        data = j.get("Data")
-                        if data is not None:
-                            f.write(base64.b64decode(j["Data"]["$binary"]))
-                            args.protelfiles.append(os.path.join(db_dir, j["Name"]))
-                # Image files
-                if (ext.upper() == '.JPG') or (ext.upper() == '.PNG'):
-                    with open(os.path.join(db_dir, j["Name"]), "wb+") as f:
-                        data = j.get("Data")
-                        if data is not None:
-                            f.write(base64.b64decode(j["Data"]["$binary"]))
+                # TODO: Extract all files in the database
+                # Extract all sch/pcb/lib and add to the list.
+                # Those files have their content stored as base64 encoded binary
+                # data in "Data/$binary"
+                for d in docs:
+                    j = json.loads(d)
+                    name, ext = os.path.splitext(j["Name"])
+                    # Design files
+                    if (ext.upper() == '.SCH') or (ext.upper() == '.PCB') or (ext.upper() == '.LIB') or (ext.upper() == '.PRJ'):
+                        with open(os.path.join(db_dir, j["Name"]), "wb+") as f:
+                            data = j.get("Data")
+                            if data is not None:
+                                f.write(base64.b64decode(j["Data"]["$binary"]))
+                                args.protelfiles.append(os.path.join(db_dir, j["Name"]))
+                    # Image files
+                    if (ext.upper() == '.JPG') or (ext.upper() == '.PNG'):
+                        with open(os.path.join(db_dir, j["Name"]), "wb+") as f:
+                            data = j.get("Data")
+                            if data is not None:
+                                f.write(base64.b64decode(j["Data"]["$binary"]))
 
     # LIB/SCH files
     for name_infile in args.protelfiles:
