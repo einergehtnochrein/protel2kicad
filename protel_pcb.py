@@ -44,6 +44,8 @@ def protel_read_string (f):
 
     return s
 
+def escape_netname(n):
+    return n.replace('\\', '\\\\')
 
 class Layers:
     def __init__ (self):
@@ -471,6 +473,8 @@ class Board:
                     comp["numprims"] = rec["COUNT"]
                     comp["layer"] = rec["LAYER"]
                     comp["libref"] = rec["PATTERN"]
+                    comp["hiddencom"] = not rec["COMMENTON"]
+                    comp["hiddendes"] = not rec["NAMEON"]
                     pcb.fps[index] = comp
 
                 if (record == "Arc") or (record == "Fill") or (record == "Pad"):
@@ -482,6 +486,10 @@ class Board:
                 if record == "Text":
                     if "COMPONENT" in rec:
                         index, comp = pcb.find_fp(rec["COMPONENT"])
+                        rec["HIDDEN"] = False
+                        if ("COMMENT" in rec and comp["hiddencom"]) or \
+                           ("DESIGNATOR" in rec and comp["hiddendes"]):
+                           rec["HIDDEN"] = True
                         comp["prims"].append(rec)
                         pcb.fps[index] = comp
                     else:
@@ -679,9 +687,11 @@ class Board:
                     39...42:    X
                     43...46:    Y
                     47...?:     libref (string8)
-                    ?...:308    ?
+                    303:	hidden designator
+                    304:	hidden comment
+                    305...308:  ?
                     309...314:  Rotation (float6)
-                    315...580:  ?
+                    315...580:  ? Appears to contain random memory
                     '''
                     for i in range(num_elements):
                         compdef = ppcb.read(section_element_size)
@@ -694,8 +704,10 @@ class Board:
                         comp["numprims"] = 0
                         comp["layer"] = pcb.layers.get_name(int(compdef[2]))
                         comp["libref"] = pcb.read_string(compdef, 47)
+                        comp["hiddendes"] = compdef[303] == 0
+                        comp["hiddencom"] = compdef[304] == 0
                         pcb.fps[index] = comp
-    
+
             if section_name == "Polygons":
                 '''
                 0:          ?
@@ -1351,7 +1363,6 @@ class Board:
                         txt["ROTATION"] = pcb.read_float(txtdef[33:39])
                         txt["TEXT"] = pcb.read_string(txtdef, 40)
                         txt["WIDTH"] = struct.unpack('<i', txtdef[296:300])[0] / 1e4
-    
                         txt["LAYER"] = pcb.layers.get_name(int(txtdef[2]))
                         if txtdef[300] != 0:
                             txt["COMMENT"] = "True"
@@ -1359,6 +1370,11 @@ class Board:
                             txt["DESIGNATOR"] = "True"
                         if compno != -1:
                             txt["COMPONENT"] = compno
+                            txt["HIDDEN"] = False
+                            if txtdef[300] != 0:
+                                txt["HIDDEN"] = fp["hiddencom"]
+                            if txtdef[301] != 0:
+                                txt["HIDDEN"] = fp["hiddendes"]
                             index, fp = pcb.find_fp(compno)
                             fp["prims"].append(txt)
                             pcb.fps[index] = fp
@@ -1524,7 +1540,7 @@ class Board:
 
         # ---------- Nets ----------
         for id, prim in self.nets.items():
-            kpcb.write(f"  (net {id} \"{prim['NAME']}\")\n")
+            kpcb.write(f"  (net {id} \"{escape_netname(prim['NAME'])}\")\n")
         kpcb.write("\n")
 
         # ---------- Footprints ----------
@@ -1596,17 +1612,20 @@ class Board:
                         thick = self.to_mm(prim["WIDTH"])
     
                         trot = float(prim["ROTATION"])
-                        tlayer = "F.Fab"
+                        tlayer = "F.SilkS"
                         mirror = ""
                         if l == "B.Cu":
-                            tlayer = "B.Fab"
+                            tlayer = "B.SilkS"
                             mirror = " mirror"
-    
+                        if prim["HIDDEN"]:
+                            hide = " (hide true)"
+                        else:
+                            hide = ""
                         s_pos = f"(at {x:.3f} {y:.3f} {trot}) (layer \"{tlayer}\")"
                         s_font = f"(font (size {height:.3f} {height:.3f}) (thickness {thick:.3f}))"
                         kpcb.write(
                             f"    (fp_text reference \"{designator}\" {s_pos}\n"
-                            f"      (effects {s_font} (justify left{mirror}))\n"
+                            f"      (effects {s_font} (justify left bottom{mirror}){hide})\n"
                              "    )\n"
                              )
     
@@ -1625,12 +1644,16 @@ class Board:
                         if l == "B.Cu":
                             tlayer = "B.Fab"
                             mirror = " mirror"
-    
+                        if prim["HIDDEN"]:
+                            hide = " (hide true)"
+                        else:
+                            hide = ""
+
                         s_pos = f'(at {x:.3f} {y:.3f} {trot}) (layer "{tlayer}")'
                         s_font = f'(font (size {height:.3f} {height:.3f}) (thickness {thick:.3f}))'
                         kpcb.write(
                             f'    (fp_text value "{comment}" {s_pos}\n'
-                            f'      (effects {s_font} (justify left{mirror}))\n'
+                            f'      (effects {s_font} (justify left bottom{mirror}){hide})\n'
                              '    )\n'
                              )
     
@@ -1747,7 +1770,7 @@ class Board:
     
                     if "NET" in prim:
                         netid = int(prim["NET"]) + 1
-                        kpcb.write(f'\n      (net {netid} \"{self.nets[netid]["NAME"]}\")')
+                        kpcb.write(f'\n      (net {netid} \"{escape_netname(self.nets[netid]["NAME"])}\")')
                     soldermask_override = self.to_mm(prim.get("SOLDERMASK_OVERRIDE", 0))
                     if soldermask_override > 0:
                         kpcb.write(f'\n      (solder_mask_margin {soldermask_override})')
@@ -1787,7 +1810,7 @@ class Board:
             if "NET" in pad:
                 netid = int(pad["NET"]) + 1
                 netname = self.nets[netid]["NAME"]
-                kpcb.write(f'\n      (net {netid} "{netname}")')
+                kpcb.write(f'\n      (net {netid} "{escape_netname(netname)}")')
             kpcb.write(')\n')
             kpcb.write('  )\n\n')
 
@@ -2100,7 +2123,7 @@ class Board:
                         s_netname = ''
                         netid = -1
 
-                    kpcb.write(f'  (zone (net {netid+1}) {s_netname} (layer {layer["kicad"]}) (hatch edge 0.508)\n')
+                    kpcb.write(f'  (zone (net {netid+1}) {escape_netname(s_netname)} (layer {layer["kicad"]}) (hatch edge 0.508)\n')
                     kpcb.write( '    (priority 0)\n')       # Lowest priority
                     kpcb.write( '    (connect_pads (clearance 0.2))\n')
                     kpcb.write( '    (min_thickness 0.1778)\n')
