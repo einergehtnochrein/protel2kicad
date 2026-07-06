@@ -321,9 +321,8 @@ class SchSymbol:
 
                     hide = " hide" if (gelem["showname"] == 0) and (gelem["shownumber"] == 0) and (length == 0) else ""
 
-                    ks = KicadString()
-                    name = ks(gelem["name"])
-                    number = ks(gelem["number"])
+                    name = KicadString(gelem["name"])
+                    number = KicadString(gelem["number"])
                     kfile.write(f"        (pin {etype} {graphical_style} (at {xx:.3f} {yy:.3f} {orientation}) (length {length}){hide}\n")
                     kfile.write(f"          (name \"{name}\" (effects (font (size 1.27 1.27))))\n")
                     kfile.write(f"          (number \"{number}\" (effects (font (size 1.27 1.27))))\n")
@@ -1084,8 +1083,9 @@ class Schematic:
                 x, y = ct(ci["x"], ci["y"])
                 rotation = ci["rotation"]
 
+                name = KicadString(ci["name"])
                 uu = uuid.uuid4()
-                ksch.write(f"  (label \"{ci['name']}\" (at {x:.3f} {y:.3f} {rotation})\n")
+                ksch.write(f"  (label \"{name}\" (at {x:.3f} {y:.3f} {rotation})\n")
                 ksch.write( "    (effects (font (size 1.0 1.0)) (justify left bottom))\n")
                 ksch.write(f"    (uuid {uu})\n")
                 ksch.write( "  )\n")

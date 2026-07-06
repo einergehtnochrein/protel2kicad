@@ -3,8 +3,6 @@
 import os
 import struct
 
-
-
 class ProtelString:
     def __init__ (self, bin_file):
         self.s = ""
@@ -33,16 +31,19 @@ class ProtelString16:
         return self.s
 
 
-class KicadString:
-    def __init__ (self):
-        pass
-
-    def __call__(self, s):
-        if s.find('\\') >= 0:
-            s = s.replace('\\', "")
-            s = "~{" + s + "}"
+def KicadString(s):
+    if s == '':
         return s
-
+    if s[0] == '\\':
+        return '~{' + s[1:].replace('\\', '') + '}'
+    out = ''
+    for i in s:
+        if i == '\\':
+            tmp = out[-1]
+            out = out[0:-1] + '~{' + tmp + '}'
+        else:
+            out = out + i
+    return out
 
 class Primitive:
     def __init__ (self):

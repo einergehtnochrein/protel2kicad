@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import math
-from protel_primitive import ProtelString
+from protel_primitive import ProtelString, KicadString
 import re
 import struct
 import uuid
@@ -1524,7 +1524,8 @@ class Board:
 
         # ---------- Nets ----------
         for id, prim in self.nets.items():
-            kpcb.write(f"  (net {id} \"{prim['NAME']}\")\n")
+            name = KicadString(prim['NAME'])
+            kpcb.write(f"  (net {id} \"{name}\")\n")
         kpcb.write("\n")
 
         # ---------- Footprints ----------
@@ -1744,10 +1745,12 @@ class Board:
                         f"    (pad \"{prim['NAME']}\" {padtype} {padshape} (at {x:.3f} {y:.3f}"
                         f" {padrotation:.3f}) (size {xsize:.3f} {ysize:.3f}) {paddrill} (layers {padlayers})"
                         )
-    
+
                     if "NET" in prim:
                         netid = int(prim["NET"]) + 1
-                        kpcb.write(f'\n      (net {netid} \"{self.nets[netid]["NAME"]}\")')
+                        name = KicadString(self.nets[netid]["NAME"])
+                        kpcb.write(f'\n      (net {netid} \"{name}\")')
+
                     soldermask_override = self.to_mm(prim.get("SOLDERMASK_OVERRIDE", 0))
                     if soldermask_override > 0:
                         kpcb.write(f'\n      (solder_mask_margin {soldermask_override})')
@@ -1786,7 +1789,7 @@ class Board:
                 )
             if "NET" in pad:
                 netid = int(pad["NET"]) + 1
-                netname = self.nets[netid]["NAME"]
+                netname = KicadString(self.nets[netid]["NAME"])
                 kpcb.write(f'\n      (net {netid} "{netname}")')
             kpcb.write(')\n')
             kpcb.write('  )\n\n')
@@ -2092,7 +2095,7 @@ class Board:
                 if layer["type"] == "mixed":
                     #print("power plane:", layer, self.bounding_box, layer["netname"])
 
-                    netname = layer['netname']
+                    netname = KicadString(layer['netname'])
                     netid = self.get_netid_by_name(netname)
                     s_netname = f'(net_name {netname})'
 
